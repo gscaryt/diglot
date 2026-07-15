@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Three Little Pigs — a progressive bilingual reader</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+    background:#39342b radial-gradient(120% 90% at 50% 12%, #4a4335 0%, #39342b 55%, #2d2921 100%);
+    color:#e6ddc6; font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    touch-action:manipulation; -webkit-text-size-adjust:100%;
+  }
+  #stage{flex:1; min-height:0; display:flex; justify-content:center; padding:14px 12px 6px}
+  #book{position:relative; width:min(540px,100%); perspective:1600px}
+
+  .page{
+    position:absolute; inset:0; overflow-y:auto; border-radius:6px;
+    background:#f7f0dd; color:#2b2418; padding:24px 24px 30px;
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Charter,Georgia,serif;
+    font-size:1.02rem; line-height:1.68;
+    box-shadow:inset 14px 0 18px -14px rgba(60,40,10,.35), inset 0 0 0 1px #efe5c9,
+               0 16px 34px rgba(0,0,0,.45), 0 3px 8px rgba(0,0,0,.3);
+  }
+  .page p{margin:0 0 1em}
+  .page h2{font-size:1.32rem; margin:0 0 .8em; font-weight:700}
+  .plabel{font-family:system-ui; font-size:.66rem; letter-spacing:.2em; text-transform:uppercase; color:#96865f; margin:0 0 16px}
+  ul{padding-left:1.15em; margin:0 0 1em}
+  li{margin-bottom:.6em}
+
+  /* tappable words — identical to body text on purpose */
+  .w{cursor:pointer; -webkit-tap-highlight-color:transparent; border-radius:3px; transition:background .45s}
+  .w.hit{background:rgba(30,94,70,.18)}
+  .w:focus-visible{outline:1.5px dashed #b5a67f; outline-offset:1px}
+
+  /* first-appearance footnotes: present but quiet */
+  .fnote{margin-top:1.8em; padding-top:.65em; border-top:1px solid #e4d8b6;
+         font-family:system-ui; font-size:.72rem; line-height:1.6; color:#96865f}
+  .fnote b{font-weight:600; color:#6f6142}
+  .fnote .fl{letter-spacing:.14em; text-transform:uppercase; font-size:.62rem; margin-right:.5em}
+
+  /* page-flip leaf */
+  .leaf{position:absolute; inset:0; z-index:10; transform-style:preserve-3d;
+        transition:transform .62s cubic-bezier(.45,.05,.2,1)}
+  .face{backface-visibility:hidden; -webkit-backface-visibility:hidden; overflow:hidden !important}
+  .face.back{transform:rotateY(180deg)}
+  @media (prefers-reduced-motion: reduce){ .leaf{transition:none} }
+
+  /* cover */
+  .page.cover{display:flex; padding:18px}
+  .frame{flex:1; border:3px solid #2b2418; outline:1.5px solid #2b2418; outline-offset:5px;
+         display:flex; flex-direction:column; align-items:center; justify-content:center;
+         gap:12px; text-align:center; padding:22px 14px}
+  .eyebrow{font-family:system-ui; font-size:.62rem; letter-spacing:.24em; text-transform:uppercase; color:#1e5e46}
+  .cover h1{font-size:clamp(1.7rem,6.8vw,2.5rem); line-height:1.1; margin:0; font-weight:800}
+  .rule{color:#c9a227; letter-spacing:.45em; font-size:.9rem}
+  .sub{font-size:.92rem; color:#5a4f3b; max-width:36ch; margin:0}
+  .hint{font-family:system-ui; font-size:.74rem; letter-spacing:.06em; color:#96865f; margin:2px 0 0}
+  svg.pig{width:104px; height:auto; stroke:#2b2418; fill:none; stroke-width:6; stroke-linecap:round; stroke-linejoin:round}
+
+  /* language pair selector */
+  .lsel{display:flex; flex-direction:column; gap:8px; font-family:system-ui; font-size:.8rem; color:#5a4f3b; margin-top:4px}
+  .lrow{display:flex; align-items:center; gap:8px; justify-content:center}
+  .lrow label{min-width:9ch; text-align:right}
+  select{font:inherit; padding:6px 10px; border:1px solid #b5a67f; border-radius:8px;
+         background:#fbf6e7; color:#2b2418; cursor:pointer}
+  select:focus-visible{outline:2px solid #c9a227; outline-offset:1px}
+
+  /* translation reveal on the last page */
+  .trbtn{font-family:system-ui; font-size:.8rem; letter-spacing:.04em; color:#5a4f3b;
+         background:#f1e8d0; border:1px solid #b5a67f; border-radius:20px; padding:8px 15px; cursor:pointer}
+  .trbtn:focus-visible{outline:2px solid #c9a227; outline-offset:2px}
+  .tr{background:#f1e8d0; border-radius:8px; padding:12px 14px; font-size:.92rem; color:#4b4232; margin-top:.9em}
+
+  /* glossary */
+  .gloss .cols{font-family:system-ui; font-size:.88rem; line-height:1.5}
+  .gloss .cols p{margin:0 0 7px; break-inside:avoid}
+  .pref{color:#96865f; font-size:.76rem}
+  @media (min-width:460px){ .gloss .cols{columns:2; column-gap:24px} }
+
+  /* definition pop-up */
+  #sheet{
+    position:fixed; left:50%; bottom:84px; z-index:50;
+    transform:translate(-50%,150%); opacity:0; pointer-events:none;
+    transition:transform .28s ease, opacity .28s ease;
+    background:#fbf6e7; color:#2b2418; border:1px solid #d8c9a4; border-radius:12px;
+    box-shadow:0 12px 28px rgba(0,0,0,.42); padding:12px 42px 13px 16px;
+    width:max-content; max-width:min(440px, calc(100vw - 28px));
+  }
+  #sheet.open{transform:translate(-50%,0); opacity:1; pointer-events:auto}
+  #sw{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Charter,Georgia,serif;
+      font-weight:700; font-size:1.18rem; color:#1e5e46}
+  #sd{font-size:.92rem; color:#4b4232; margin-top:2px}
+  #sd .fb{display:block; font-size:.78rem; color:#96865f; margin-bottom:1px}
+  #sx{position:absolute; top:5px; right:7px; background:none; border:0; font-size:1.15rem;
+      color:#96865f; cursor:pointer; padding:4px}
+  @media (prefers-reduced-motion: reduce){ #sheet{transition:none} }
+
+  /* nav */
+  footer{display:flex; align-items:center; justify-content:center; gap:20px;
+         padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
+  .nav{width:46px; height:46px; border-radius:50%; border:1px solid #6b6250;
+       background:#f7f0dd; color:#2b2418; font-size:1.45rem; line-height:1; cursor:pointer;
+       box-shadow:0 3px 8px rgba(0,0,0,.35)}
+  .nav:disabled{opacity:.32; cursor:default}
+  .nav:focus-visible{outline:2px solid #c9a227; outline-offset:2px}
+  #ind{min-width:74px; text-align:center; font-size:.84rem; letter-spacing:.1em; color:#cfc4a9}
+</style>
+</head>
+<body>
+
+<div id="stage"><div id="book"><div id="pg" class="page"></div></div></div>
+
+<footer>
+  <button id="prev" class="nav" aria-label="Previous page">‹</button>
+  <div id="ind" aria-live="polite"></div>
+  <button id="next" class="nav" aria-label="Next page">›</button>
+</footer>
+
+<div id="sheet" role="dialog" aria-live="polite">
+  <div id="sw"></div>
+  <div id="sd"></div>
+  <button id="sx" aria-label="Close">×</button>
+</div>
+
+<script>

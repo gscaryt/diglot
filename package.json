@@ -1,0 +1,11 @@
+{
+  "name": "progressive-reader",
+  "version": "0.1.0",
+  "description": "Progressive bilingual storybook generator (diglot weave): one dataset, any language pair among en/pt-BR/fr/it/de, single-file HTML output.",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "node build.js",
+    "validate": "node tools/validate.js"
+  }
+}

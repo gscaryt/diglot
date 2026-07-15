@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Three Little Pigs — a progressive bilingual reader</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; height:100dvh; display:flex; flex-direction:column; overflow:hidden;
+    background:#39342b radial-gradient(120% 90% at 50% 12%, #4a4335 0%, #39342b 55%, #2d2921 100%);
+    color:#e6ddc6; font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    touch-action:manipulation; -webkit-text-size-adjust:100%;
+  }
+  #stage{flex:1; min-height:0; display:flex; justify-content:center; padding:14px 12px 6px}
+  #book{position:relative; width:min(540px,100%); perspective:1600px}
+
+  .page{
+    position:absolute; inset:0; overflow-y:auto; border-radius:6px;
+    background:#f7f0dd; color:#2b2418; padding:24px 24px 30px;
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Charter,Georgia,serif;
+    font-size:1.02rem; line-height:1.68;
+    box-shadow:inset 14px 0 18px -14px rgba(60,40,10,.35), inset 0 0 0 1px #efe5c9,
+               0 16px 34px rgba(0,0,0,.45), 0 3px 8px rgba(0,0,0,.3);
+  }
+  .page p{margin:0 0 1em}
+  .page h2{font-size:1.32rem; margin:0 0 .8em; font-weight:700}
+  .plabel{font-family:system-ui; font-size:.66rem; letter-spacing:.2em; text-transform:uppercase; color:#96865f; margin:0 0 16px}
+  ul{padding-left:1.15em; margin:0 0 1em}
+  li{margin-bottom:.6em}
+
+  /* tappable words — identical to body text on purpose */
+  .w{cursor:pointer; -webkit-tap-highlight-color:transparent; border-radius:3px; transition:background .45s}
+  .w.hit{background:rgba(30,94,70,.18)}
+  .w:focus-visible{outline:1.5px dashed #b5a67f; outline-offset:1px}
+
+  /* first-appearance footnotes: present but quiet */
+  .fnote{margin-top:1.8em; padding-top:.65em; border-top:1px solid #e4d8b6;
+         font-family:system-ui; font-size:.72rem; line-height:1.6; color:#96865f}
+  .fnote b{font-weight:600; color:#6f6142}
+  .fnote .fl{letter-spacing:.14em; text-transform:uppercase; font-size:.62rem; margin-right:.5em}
+
+  /* page-flip leaf */
+  .leaf{position:absolute; inset:0; z-index:10; transform-style:preserve-3d;
+        transition:transform .62s cubic-bezier(.45,.05,.2,1)}
+  .face{backface-visibility:hidden; -webkit-backface-visibility:hidden; overflow:hidden !important}
+  .face.back{transform:rotateY(180deg)}
+  @media (prefers-reduced-motion: reduce){ .leaf{transition:none} }
+
+  /* cover */
+  .page.cover{display:flex; padding:18px}
+  .frame{flex:1; border:3px solid #2b2418; outline:1.5px solid #2b2418; outline-offset:5px;
+         display:flex; flex-direction:column; align-items:center; justify-content:center;
+         gap:12px; text-align:center; padding:22px 14px}
+  .eyebrow{font-family:system-ui; font-size:.62rem; letter-spacing:.24em; text-transform:uppercase; color:#1e5e46}
+  .cover h1{font-size:clamp(1.7rem,6.8vw,2.5rem); line-height:1.1; margin:0; font-weight:800}
+  .rule{color:#c9a227; letter-spacing:.45em; font-size:.9rem}
+  .sub{font-size:.92rem; color:#5a4f3b; max-width:36ch; margin:0}
+  .hint{font-family:system-ui; font-size:.74rem; letter-spacing:.06em; color:#96865f; margin:2px 0 0}
+  svg.pig{width:104px; height:auto; stroke:#2b2418; fill:none; stroke-width:6; stroke-linecap:round; stroke-linejoin:round}
+
+  /* language pair selector */
+  .lsel{display:flex; flex-direction:column; gap:8px; font-family:system-ui; font-size:.8rem; color:#5a4f3b; margin-top:4px}
+  .lrow{display:flex; align-items:center; gap:8px; justify-content:center}
+  .lrow label{min-width:9ch; text-align:right}
+  select{font:inherit; padding:6px 10px; border:1px solid #b5a67f; border-radius:8px;
+         background:#fbf6e7; color:#2b2418; cursor:pointer}
+  select:focus-visible{outline:2px solid #c9a227; outline-offset:1px}
+
+  /* translation reveal on the last page */
+  .trbtn{font-family:system-ui; font-size:.8rem; letter-spacing:.04em; color:#5a4f3b;
+         background:#f1e8d0; border:1px solid #b5a67f; border-radius:20px; padding:8px 15px; cursor:pointer}
+  .trbtn:focus-visible{outline:2px solid #c9a227; outline-offset:2px}
+  .tr{background:#f1e8d0; border-radius:8px; padding:12px 14px; font-size:.92rem; color:#4b4232; margin-top:.9em}
+
+  /* glossary */
+  .gloss .cols{font-family:system-ui; font-size:.88rem; line-height:1.5}
+  .gloss .cols p{margin:0 0 7px; break-inside:avoid}
+  .pref{color:#96865f; font-size:.76rem}
+  @media (min-width:460px){ .gloss .cols{columns:2; column-gap:24px} }
+
+  /* definition pop-up */
+  #sheet{
+    position:fixed; left:50%; bottom:84px; z-index:50;
+    transform:translate(-50%,150%); opacity:0; pointer-events:none;
+    transition:transform .28s ease, opacity .28s ease;
+    background:#fbf6e7; color:#2b2418; border:1px solid #d8c9a4; border-radius:12px;
+    box-shadow:0 12px 28px rgba(0,0,0,.42); padding:12px 42px 13px 16px;
+    width:max-content; max-width:min(440px, calc(100vw - 28px));
+  }
+  #sheet.open{transform:translate(-50%,0); opacity:1; pointer-events:auto}
+  #sw{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Charter,Georgia,serif;
+      font-weight:700; font-size:1.18rem; color:#1e5e46}
+  #sd{font-size:.92rem; color:#4b4232; margin-top:2px}
+  #sd .fb{display:block; font-size:.78rem; color:#96865f; margin-bottom:1px}
+  #sx{position:absolute; top:5px; right:7px; background:none; border:0; font-size:1.15rem;
+      color:#96865f; cursor:pointer; padding:4px}
+  @media (prefers-reduced-motion: reduce){ #sheet{transition:none} }
+
+  /* nav */
+  footer{display:flex; align-items:center; justify-content:center; gap:20px;
+         padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
+  .nav{width:46px; height:46px; border-radius:50%; border:1px solid #6b6250;
+       background:#f7f0dd; color:#2b2418; font-size:1.45rem; line-height:1; cursor:pointer;
+       box-shadow:0 3px 8px rgba(0,0,0,.35)}
+  .nav:disabled{opacity:.32; cursor:default}
+  .nav:focus-visible{outline:2px solid #c9a227; outline-offset:2px}
+  #ind{min-width:74px; text-align:center; font-size:.84rem; letter-spacing:.1em; color:#cfc4a9}
+</style>
+</head>
+<body>
+
+<div id="stage"><div id="book"><div id="pg" class="page"></div></div></div>
+
+<footer>
+  <button id="prev" class="nav" aria-label="Previous page">‹</button>
+  <div id="ind" aria-live="polite"></div>
+  <button id="next" class="nav" aria-label="Next page">›</button>
+</footer>
+
+<div id="sheet" role="dialog" aria-live="polite">
+  <div id="sw"></div>
+  <div id="sd"></div>
+  <button id="sx" aria-label="Close">×</button>
+</div>
+
+<script>
+
+/* ================= LANGUAGES & UI STRINGS ================= */
+const LANGS = ['en','pt','fr','it','de','es'];
+const LNAME_SELF = {en:'English', pt:'Português (BR)', fr:'Français', it:'Italiano', de:'Deutsch', es:'Español'};
+// name of the TARGET language written in the SOURCE language
+const LNAMES = {
+  en:{en:'English',pt:'Portuguese',fr:'French',it:'Italian',de:'German',es:'Spanish'},
+  pt:{en:'inglês',pt:'português',fr:'francês',it:'italiano',de:'alemão',es:'espanhol'},
+  fr:{en:'anglais',pt:'portugais',fr:'français',it:'italien',de:'allemand',es:'espagnol'},
+  it:{en:'inglese',pt:'portoghese',fr:'francese',it:'italiano',de:'tedesco',es:'spagnolo'},
+  de:{en:'Englisch',pt:'Portugiesisch',fr:'Französisch',it:'Italienisch',de:'Deutsch',es:'Spanisch'},
+  es:{en:'inglés',pt:'portugués',fr:'francés',it:'italiano',de:'alemán',es:'español'}
+};
+const PAGEWORD = {en:'Page', pt:'Página', fr:'Page', it:'Pagina', de:'Seite', es:'Página'};
+const GLOSSTITLE = {en:'Glossary', pt:'Glossário', fr:'Glossaire', it:'Glossario', de:'Glossar', es:'Glosario'};
+
+const UI = {
+  en:{eyebrow:'A little book for learning %L', sub:'a story that slowly turns into %L',
+      readIn:'I read in', learn:"I'm learning", hint:'turn the page →',
+      howtoLabel:'How to read this book', howtoTitle:'Before you begin',
+      howtoP:'This little book plays a trick on you — a friendly one. It starts in your language, but %L slips in as you read. Each new word first appears where the context makes its meaning obvious, then returns again and again until it feels like yours. Page by page your language fades, and by the last page you are reading %L.',
+      tips:['The first time a new word appears, you will find it in the small note at the bottom of that page.',
+            'Later, tap any word you don\u2019t recognize — its meaning pops up. Nothing is highlighted; the words hide in plain sight. Try it now: %W.',
+            'Don\u2019t stop to memorize. If you forget a word, the story will remind you — and a tap brings it back.',
+            'Swipe or use the arrows to turn the pages. The full glossary is on the last page.'],
+      happy:'Happy reading!',
+      meta1:'Once upon a time, there were three little pigs. In %L, little pigs are %W — and since this is really their story, that is what we will call them.',
+      fnote:'New words', inSent:'in this sentence:', showTr:'Show the translation'},
+  pt:{eyebrow:'Um livrinho para aprender %L', sub:'uma história que aos poucos vira %L',
+      readIn:'Eu leio em', learn:'Quero aprender', hint:'vire a página →',
+      howtoLabel:'Como ler este livro', howtoTitle:'Antes de começar',
+      howtoP:'Este livrinho prega uma peça em você — uma peça amiga. Ele começa na sua língua, mas o %L vai entrando enquanto você lê. Cada palavra nova aparece primeiro onde o contexto deixa o sentido óbvio, e depois volta várias vezes até ficar sua. Página a página a sua língua vai sumindo, e na última página você está lendo em %L.',
+      tips:['Na primeira vez que uma palavra nova aparece, ela está na notinha no pé da página.',
+            'Depois, toque em qualquer palavra que você não reconhecer — o significado aparece. Nada fica destacado; as palavras se escondem à vista. Experimente agora: %W.',
+            'Não pare para decorar. Se esquecer uma palavra, a história vai lembrar você — e um toque traz a resposta.',
+            'Deslize ou use as setas para virar as páginas. O glossário completo está na última página.'],
+      happy:'Boa leitura!',
+      meta1:'Era uma vez três porquinhos. Em %L, porquinhos são %W — e como esta história é deles, é assim que vamos chamá-los.',
+      fnote:'Palavras novas', inSent:'nesta frase:', showTr:'Mostrar tradução'},
+  fr:{eyebrow:'Un petit livre pour apprendre %L', sub:'une histoire qui devient peu à peu %L',
+      readIn:'Je lis en', learn:'J\u2019apprends', hint:'tournez la page →',
+      howtoLabel:'Comment lire ce livre', howtoTitle:'Avant de commencer',
+      howtoP:'Ce petit livre vous joue un tour — un tour amical. Il commence dans votre langue, mais le %L s\u2019y glisse au fil de la lecture. Chaque mot nouveau apparaît d\u2019abord là où le contexte rend son sens évident, puis revient encore et encore jusqu\u2019à devenir vôtre. Page après page votre langue s\u2019efface, et à la dernière page vous lisez en %L.',
+      tips:['La première fois qu\u2019un mot nouveau apparaît, il figure dans la petite note en bas de la page.',
+            'Ensuite, touchez n\u2019importe quel mot que vous ne reconnaissez pas — son sens apparaît. Rien n\u2019est surligné ; les mots se cachent à la vue de tous. Essayez maintenant : %W.',
+            'Ne vous arrêtez pas pour mémoriser. Si vous oubliez un mot, l\u2019histoire vous le rappellera — et un simple toucher vous donne la réponse.',
+            'Balayez ou utilisez les flèches pour tourner les pages. Le glossaire complet est à la dernière page.'],
+      happy:'Bonne lecture !',
+      meta1:'Il était une fois trois petits cochons. En %L, les petits cochons s\u2019appellent %W — et comme c\u2019est leur histoire, c\u2019est ainsi que nous les appellerons.',
+      fnote:'Mots nouveaux', inSent:'dans cette phrase :', showTr:'Afficher la traduction'},
+  it:{eyebrow:'Un libretto per imparare %L', sub:'una storia che a poco a poco diventa %L',
+      readIn:'Leggo in', learn:'Sto imparando', hint:'gira la pagina →',
+      howtoLabel:'Come leggere questo libro', howtoTitle:'Prima di cominciare',
+      howtoP:'Questo libretto ti fa uno scherzo — uno scherzo gentile. Comincia nella tua lingua, ma il %L si infila mentre leggi. Ogni parola nuova appare prima dove il contesto ne rende ovvio il significato, poi torna ancora e ancora finché diventa tua. Pagina dopo pagina la tua lingua svanisce, e all\u2019ultima pagina stai leggendo in %L.',
+      tips:['La prima volta che una parola nuova appare, la trovi nella piccola nota in fondo alla pagina.',
+            'Poi, tocca qualsiasi parola che non riconosci — il significato compare. Niente è evidenziato; le parole si nascondono in piena vista. Prova adesso: %W.',
+            'Non fermarti a memorizzare. Se dimentichi una parola, la storia te la ricorderà — e un tocco ti dà la risposta.',
+            'Scorri o usa le frecce per girare le pagine. Il glossario completo è all\u2019ultima pagina.'],
+      happy:'Buona lettura!',
+      meta1:'C\u2019erano una volta tre porcellini. In %L, i porcellini si chiamano %W — e siccome questa è la loro storia, li chiameremo così.',
+      fnote:'Parole nuove', inSent:'in questa frase:', showTr:'Mostra la traduzione'},
+  de:{eyebrow:'Ein Büchlein zum %L-Lernen', sub:'eine Geschichte, die langsam %L wird',
+      readIn:'Ich lese auf', learn:'Ich lerne', hint:'blättere um →',
+      howtoLabel:'Wie man dieses Buch liest', howtoTitle:'Bevor du anfängst',
+      howtoP:'Dieses Büchlein spielt dir einen Streich — einen freundlichen. Es beginnt in deiner Sprache, aber %L schleicht sich beim Lesen hinein. Jedes neue Wort erscheint zuerst dort, wo der Zusammenhang seine Bedeutung offensichtlich macht, und kehrt dann wieder und wieder zurück, bis es dir gehört. Seite für Seite verschwindet deine Sprache, und auf der letzten Seite liest du %L.',
+      tips:['Wenn ein neues Wort zum ersten Mal auftaucht, steht es in der kleinen Notiz unten auf der Seite.',
+            'Später: Tippe auf jedes Wort, das du nicht erkennst — seine Bedeutung erscheint. Nichts ist markiert; die Wörter verstecken sich vor aller Augen. Probier es gleich aus: %W.',
+            'Bleib nicht am Auswendiglernen hängen. Wenn du ein Wort vergisst, erinnert dich die Geschichte daran — und ein Tipp gibt dir die Antwort.',
+            'Wische oder benutze die Pfeile zum Umblättern. Das vollständige Glossar steht auf der letzten Seite.'],
+      happy:'Viel Spaß beim Lesen!',
+      meta1:'Es waren einmal drei kleine Schweinchen. Auf %L heißen kleine Schweinchen %W — und weil dies ihre Geschichte ist, nennen wir sie ab jetzt so.',
+      fnote:'Neue Wörter', inSent:'in diesem Satz:', showTr:'Übersetzung anzeigen'},
+  es:{eyebrow:'Un librito para aprender %L', sub:'una historia que poco a poco se convierte en %L',
+      readIn:'Yo leo en', learn:'Quiero aprender', hint:'pasa la página →',
+      howtoLabel:'Cómo leer este libro', howtoTitle:'Antes de empezar',
+      howtoP:'Este librito te juega una broma — una broma amistosa. Empieza en tu idioma, pero el %L se va colando mientras lees. Cada palabra nueva aparece primero donde el contexto deja su significado claro, y luego vuelve una y otra vez hasta que se vuelve tuya. Página a página tu idioma va desapareciendo, y en la última página estás leyendo en %L.',
+      tips:['La primera vez que aparece una palabra nueva, la encontrarás en la notita al pie de esa página.',
+            'Después, toca cualquier palabra que no reconozcas — su significado aparece. Nada está resaltado; las palabras se esconden a la vista. Pruébalo ahora: %W.',
+            'No te detengas a memorizar. Si olvidas una palabra, la historia te la recordará — y un toque te da la respuesta.',
+            'Desliza o usa las flechas para pasar las páginas. El glosario completo está en la última página.'],
+      happy:'¡Feliz lectura!',
+      meta1:'Había una vez tres cerditos. En %L, los cerditos son %W — y como esta es realmente su historia, así los llamaremos.',
+      fnote:'Palabras nuevas', inSent:'en esta frase:', showTr:'Mostrar la traducción'}
+};
+
+const TITLE = {en:'The Three Little Pigs', pt:'Os Três Porquinhos', fr:'Les Trois Petits Cochons',
+               it:'I Tre Porcellini', de:'Die drei kleinen Schweinchen', es:'Los Tres Cerditos'};
+/* ================= CONCEPTS (one entry per tracked form) ================= */
+const C = {
+  PIG:{en:'little pig',pt:'porquinho',fr:'petit cochon',it:'porcellino',de:'Schweinchen',es:'cerdito'},
+  PIGS:{en:'little pigs',pt:'porquinhos',fr:'petits cochons',it:'porcellini',de:'Schweinchen',es:'cerditos'},
+  MOM:{en:'mom',pt:'mamãe',fr:'maman',it:'mamma',de:'Mama',es:'mamá'},
+  HOUSE:{en:'house',pt:'casa',fr:'maison',it:'casa',de:'Haus',es:'casa'},
+  HOUSES:{en:'houses',pt:'casas',fr:'maisons',it:'case',de:'Häuser',es:'casas'},
+  WOLF:{en:'wolf',pt:'lobo',fr:'loup',it:'lupo',de:'Wolf',es:'lobo'},
+  BIG:{en:'big',pt:'grande',fr:'grand',it:'grande',de:'groß',es:'grande'},
+  BAD:{en:'bad',pt:'mau',fr:'méchant',it:'cattivo',de:'böse',es:'malo'},
+  GOODBYE:{en:'goodbye',pt:'adeus',fr:'au revoir',it:'addio',de:'auf Wiedersehen',es:'adiós'},
+  LAZY:{en:'lazy',pt:'preguiçoso',fr:'paresseux',it:'pigro',de:'faul',es:'perezoso'},
+  STRAW:{en:'straw',pt:'palha',fr:'paille',it:'paglia',de:'Stroh',es:'paja'},
+  BUILT:{en:'built',pt:'construiu',fr:'construisit',it:'costruì',de:'baute',es:'construyó'},
+  BUILT_PL:{en:'(they) built',pt:'construíram',fr:'construisirent',it:'costruirono',de:'bauten',es:'construyeron'},
+  FOREST:{en:'forest',pt:'floresta',fr:'forêt',it:'foresta',de:'Wald',es:'bosque'},
+  STICKS:{en:'sticks',pt:'gravetos',fr:'branches',it:'rametti',de:'Zweige',es:'ramas'},
+  CLEVER:{en:'clever',pt:'esperto',fr:'malin',it:'furbo',de:'schlau',es:'astuto'},
+  BRICKS:{en:'bricks',pt:'tijolos',fr:'briques',it:'mattoni',de:'Ziegel',es:'ladrillos'},
+  BRICK:{en:'brick',pt:'tijolo',fr:'brique',it:'mattone',de:'Ziegel',es:'ladrillo'},
+  STRONG:{en:'strong',pt:'forte',fr:'solide',it:'solida',de:'stabil',es:'fuerte'},
+  WORKED:{en:'worked',pt:'trabalhou',fr:'travailla',it:'lavorò',de:'arbeitete',es:'trabajó'},
+  CHIMNEY:{en:'chimney',pt:'chaminé',fr:'cheminée',it:'camino',de:'Schornstein',es:'chimenea'},
+  HUNGER:{en:'a mighty hunger',pt:'muita fome',fr:'très faim',it:'una gran fame',de:'großen Hunger',es:'mucha hambre'},
+  OF:{en:'of',pt:'de',fr:'de',it:'di',de:'aus',es:'de'},
+  KNOCKED:{en:'knocked',pt:'bateu',fr:'frappa',it:'bussò',de:'klopfte',es:'tocó'},
+  DOOR:{en:'door',pt:'porta',fr:'porte',it:'porta',de:'Tür',es:'puerta'},
+  LET_ME_IN:{en:'let me in!',pt:'deixe-me entrar!',fr:'laisse-moi entrer !',it:'fammi entrare!',de:'lass mich rein!',es:'¡déjame entrar!'},
+  SAID:{en:'said',pt:'disse',fr:'dit',it:'disse',de:'sagte',es:'dijo'},
+  SAID_PL:{en:'(they) said',pt:'disseram',fr:'dirent',it:'dissero',de:'sagten',es:'dijeron'},
+  HUFFED:{en:'huffed',pt:'bufou',fr:'souffla',it:'sbuffò',de:'schnaubte',es:'resopló'},
+  BLEW:{en:'blew',pt:'soprou',fr:'souffla',it:'soffiò',de:'pustete',es:'sopló'},
+  AND:{en:'and',pt:'e',fr:'et',it:'e',de:'und',es:'y'},
+  RAN:{en:'ran',pt:'correu',fr:'courut',it:'corse',de:'rannte',es:'corrió'},
+  RAN_PL:{en:'(they) ran',pt:'correram',fr:'coururent',it:'corsero',de:'rannten',es:'corrieron'},
+  NO:{en:'no; not',pt:'não',fr:'non',it:'no',de:'nein',es:'no'},
+  NOT_BY_HAIRS:{en:'not by the hairs of my chinny-chin-chin!',pt:'nem pelos pelos do meu queixinho!',fr:'pas par les poils de mon petit menton !',it:'no, per i peli del mio mentino!',de:'nicht um die Härchen an meinem Kinn!',es:'no, por los pelos de mi barbita!'},
+  THEN:{en:'then',pt:'então',fr:'alors',it:'allora',de:'dann',es:'entonces'},
+  HUFFPUFF:{en:"I'll huff, and I'll puff, and I'll blow your house down!",pt:'vou bufar, vou soprar, e a sua casa vou derrubar!',fr:'je vais souffler, et souffler, et ta maison va s’écrouler !',it:'sbufferò, soffierò, e la tua casa butterò giù!',de:'ich schnaufe und ich puste und ich blase dein Haus um!',es:'resoplaré, y soplaré, y tu casa derribaré!'},
+  FELL:{en:'fell',pt:'caiu',fr:'s’écroula',it:'crollò',de:'stürzte ein',es:'se derrumbó'},
+  TWO:{en:'two',pt:'dois',fr:'deux',it:'due',de:'zwei',es:'dos'},
+  UNTIL_TO:{en:'all the way to',pt:'até',fr:'jusqu’à',it:'fino a',de:'bis zu',es:'hasta'},
+  QUICK:{en:'quick!',pt:'depressa!',fr:'vite !',it:'presto!',de:'schnell!',es:'¡rápido!'},
+  COME_IN:{en:'come in!',pt:'entrem!',fr:'entrez !',it:'entrate!',de:'kommt rein!',es:'¡entren!'},
+  HERE_SAFE:{en:'here we are safe',pt:'aqui estamos seguros',fr:'ici nous sommes en sécurité',it:'qui siamo al sicuro',de:'hier sind wir sicher',es:'aquí estamos a salvo'},
+  ARRIVED:{en:'arrived',pt:'chegou',fr:'arriva',it:'arrivò',de:'kam an',es:'llegó'},
+  HE:{en:'he',pt:'ele',fr:'il',it:'lui',de:'er',es:'él'},
+  STUBBORN:{en:'stubborn',pt:'teimoso',fr:'têtu',it:'testardo',de:'stur',es:'terco'},
+  SAW:{en:'saw',pt:'viu',fr:'vit',it:'vide',de:'sah',es:'vio'},
+  HEARD:{en:'heard',pt:'ouviu',fr:'entendit',it:'sentì',de:'hörte',es:'oyó'},
+  ROOF:{en:'roof',pt:'telhado',fr:'toit',it:'tetto',de:'Dach',es:'tejado'},
+  POT:{en:'pot',pt:'panela',fr:'marmite',it:'pentolone',de:'Kessel',es:'olla'},
+  WATER:{en:'water',pt:'água',fr:'eau',it:'acqua',de:'Wasser',es:'agua'},
+  FIRE:{en:'fire',pt:'fogo',fr:'feu',it:'fuoco',de:'Feuer',es:'fuego'},
+  HOT:{en:'hot',pt:'quente',fr:'chaud',it:'caldo',de:'heiß',es:'caliente'},
+  SCREAMED:{en:'screamed',pt:'gritou',fr:'hurla',it:'urlò',de:'schrie',es:'gritó'},
+  JUMPED:{en:'jumped',pt:'saltou',fr:'bondit',it:'saltò',de:'sprang',es:'saltó'},
+  NEVER_AGAIN:{en:'never again',pt:'nunca mais',fr:'plus jamais',it:'mai più',de:'nie wieder',es:'nunca más'},
+  CAME_BACK:{en:'came back',pt:'voltou',fr:'revint',it:'tornò',de:'kam zurück',es:'volvió'},
+  FIRST:{en:'first',pt:'primeiro',fr:'premier',it:'primo',de:'erste',es:'primero'},
+  SECOND:{en:'second',pt:'segundo',fr:'deuxième',it:'secondo',de:'zweite',es:'segundo'},
+  THIRD:{en:'third',pt:'terceiro',fr:'troisième',it:'terzo',de:'dritte',es:'tercero'},
+  LESSON:{en:'lesson',pt:'lição',fr:'leçon',it:'lezione',de:'Lektion',es:'lección'},
+  TOGETHER:{en:'together',pt:'juntos',fr:'ensemble',it:'insieme',de:'zusammen',es:'juntos'},
+  THREE:{en:'three',pt:'três',fr:'trois',it:'tre',de:'drei',es:'tres'},
+  PROUD:{en:'proud',pt:'orgulhosa',fr:'fière',it:'orgogliosa',de:'stolz',es:'orgullosa'},
+  LIVED:{en:'(they) lived',pt:'viveram',fr:'vécurent',it:'vissero',de:'lebten',es:'vivieron'},
+  HAPPY_EVER:{en:'happily ever after',pt:'felizes para sempre',fr:'heureux pour toujours',it:'per sempre felici e contenti',de:'glücklich bis ans Ende ihrer Tage',es:'felices para siempre'},
+  END:{en:'The end.',pt:'Fim.',fr:'Fin.',it:'Fine.',de:'Ende.',es:'Fin.'},
+  VERY:{en:'very, much',pt:'muito',fr:'très',it:'molto',de:'sehr',es:'muy, mucho'},
+  LITTLE:{en:'little',pt:'pequeno',fr:'petit',it:'piccolo',de:'klein',es:'pequeño'},
+  ART:{en:'the',pt:'o, a',fr:'le, la',it:'il, la',de:'der, die, das',es:'el, la'},
+  IN_THE:{en:'in the, on the',pt:'na, no',fr:'dans la',it:'nella, sul',de:'in der, auf dem',es:'en la, en el'},
+  OF_THE:{en:'of the, from the',pt:'do, da',fr:'du, de la',it:'del, della',de:'vom',es:'del, de la'},
+  TO_THE:{en:'to the, at the',pt:'à, ao',fr:'à la',it:'alla',de:'zum',es:'a la, al'},
+  THROUGH_THE:{en:'through the, by the',pt:'pela',fr:'par la',it:'dal',de:'durch den',es:'por la, por el'},
+  MY:{en:'my',pt:'meu, minha',fr:'mon, ma',it:'mio, mia',de:'mein',es:'mi'},
+  YOUR:{en:'your',pt:'sua',fr:'ta',it:'tua',de:'dein',es:'tu'},
+  I_WILL:{en:'I will, I’m going to',pt:'vou',fr:'je vais',it:'(futuro: -ò)',de:'ich werde',es:'voy a'},
+  KNOCK_DOWN:{en:'to knock down',pt:'derrubar',fr:'faire écrouler',it:'buttare giù',de:'umblasen',es:'derribar'},
+  NOT_EVEN:{en:'not even',pt:'nem',fr:'même pas',it:'nemmeno',de:'nicht einmal',es:'ni siquiera'},
+  HAIRS:{en:'the hairs',pt:'os pelos',fr:'les poils',it:'i peli',de:'die Härchen',es:'los pelos'},
+  CHIN:{en:'little chin',pt:'queixinho',fr:'petit menton',it:'mentino',de:'Kinn',es:'barbita'},
+  WAS:{en:'was',pt:'era, estava',fr:'était',it:'era',de:'war',es:'era, estaba'},
+  BUT:{en:'but',pt:'mas',fr:'mais',it:'ma',de:'aber',es:'pero'},
+  TOO_STRONG:{en:'too strong',pt:'forte demais',fr:'trop solide',it:'troppo solida',de:'zu stabil',es:'demasiado fuerte'},
+  MOVED:{en:'moved',pt:'se moveu',fr:'bougea',it:'si mosse',de:'bewegte sich',es:'se movió'},
+  LOOKED_UP:{en:'looked up',pt:'olhou para cima',fr:'leva les yeux',it:'guardò in su',de:'schaute nach oben',es:'miró hacia arriba'},
+  FAST:{en:'fast, quick',pt:'rápido',fr:'vite',it:'veloce',de:'schnell',es:'rápido'},
+  PUT:{en:'put',pt:'colocou',fr:'posa',it:'mise',de:'stellte',es:'puso'},
+  CAME_DOWN:{en:'came down',pt:'desceu',fr:'descendit',it:'scese',de:'kletterte hinunter',es:'bajó'},
+  WENT_OUT:{en:'went out',pt:'saiu',fr:'sortit',it:'uscì',de:'lief hinaus',es:'salió'},
+  COULD:{en:'(he) could',pt:'pôde',fr:'put',it:'poté',de:'konnte',es:'pudo'},
+  LEARNED:{en:'(they) learned',pt:'aprenderam',fr:'retinrent',it:'impararono',de:'lernten',es:'aprendieron'},
+  WERE:{en:'(they) were',pt:'foram',fr:'furent',it:'furono',de:'waren',es:'fueron'},
+  BEAUTIFUL:{en:'beautiful',pt:'bonitas',fr:'belles',it:'belle',de:'schön',es:'hermosas'},
+  SIDE_BY_SIDE:{en:'side by side',pt:'uma ao lado da outra',fr:'côte à côte',it:'una accanto all’altra',de:'Seite an Seite',es:'una al lado de la otra'},
+  CAME:{en:'came',pt:'veio',fr:'vint',it:'venne',de:'kam',es:'vino'},
+  VISIT:{en:'to visit',pt:'visitar',fr:'rendre visite',it:'venire a trovare',de:'besuchen',es:'visitar'},
+  HERE:{en:'here',pt:'aqui',fr:'ici',it:'qui',de:'hier',es:'aquí'},
+  SAFE:{en:'safe',pt:'seguros',fr:'en sécurité',it:'al sicuro',de:'sicher',es:'a salvo'},
+  WE_ARE:{en:'we are',pt:'estamos',fr:'nous sommes',it:'siamo',de:'wir sind',es:'estamos'},
+  PURPLE:{en:'purple',pt:'roxo',fr:'violet',it:'viola',de:'violett',es:'morado'},
+  BECOME:{en:'to become, to turn',pt:'ficar',fr:'devenir',it:'diventare',de:'werden',es:'ponerse'},
+  ENTER:{en:'to come in, to enter',pt:'entrar',fr:'entrer',it:'entrare',de:'hereinkommen',es:'entrar'},
+  A_ONE:{en:'one; a',pt:'um, uma',fr:'un, une',it:'un, una',de:'ein, eine',es:'un, una'},
+  MORE:{en:'more',pt:'mais',fr:'plus',it:'più',de:'mehr',es:'más'},
+  NEVER:{en:'never',pt:'nunca',fr:'jamais',it:'mai',de:'nie',es:'nunca'},
+  LESSON_A:{en:'the lesson',pt:'a lição',fr:'la leçon',it:'la lezione',de:'ihre Lektion',es:'la lección'}
+};
+
+/* extra concepts used by token maps / phrase segments */
+Object.assign(C, {
+  H_STRAW:{en:'house of straw',pt:'casa de palha',fr:'maison de paille',it:'casa di paglia',de:'Haus aus Stroh',es:'casa de paja'},
+  H_STICKS:{en:'house of sticks',pt:'casa de gravetos',fr:'maison de branches',it:'casa di rametti',de:'Haus aus Zweigen',es:'casa de ramas'},
+  H_BRICKS:{en:'house of bricks',pt:'casa de tijolos',fr:'maison de briques',it:'casa di mattoni',de:'Haus aus Ziegeln',es:'casa de ladrillos'},
+  TOO:{en:'too (much)',pt:'demais',fr:'trop',it:'troppo',de:'zu',es:'demasiado'},
+  ITSELF:{en:'itself (reflexive)',pt:'se',fr:'se',it:'si',de:'sich',es:'se'},
+  STRAIGHT:{en:'straight, directly',pt:'direto',fr:'tout droit',it:'dritto',de:'direkt',es:'directo'},
+  THAT:{en:'that, which',pt:'que',fr:'que',it:'che',de:'dass, als',es:'que'},
+  TO_FOR:{en:'to, for',pt:'para',fr:'pour',it:'per',de:'für, nach',es:'para'},
+  UP:{en:'up, above',pt:'cima',fr:'en haut',it:'su',de:'oben',es:'arriba'},
+  SIDE:{en:'side',pt:'lado',fr:'côté',it:'lato',de:'Seite',es:'lado'},
+  OTHER:{en:'other',pt:'outra',fr:'autre',it:'altra',de:'andere',es:'otra'},
+  HAPPY:{en:'happy',pt:'felizes',fr:'heureux',it:'felici',de:'glücklich',es:'felices'},
+  ALWAYS:{en:'always (para sempre = forever)',pt:'sempre',fr:'toujours',it:'sempre',de:'immer',es:'siempre'},
+  LOOKED:{en:'looked',pt:'olhou',fr:'regarda',it:'guardò',de:'schaute',es:'miró'}
+});
+
+/* ================= TOKEN MAPS (surface form → concept, per language) ================= */
+const TOKENS = {
+en:{pigs:'PIGS',pig:'PIG',little:'LITTLE',mom:'MOM',house:'HOUSE',houses:'HOUSES',wolf:'WOLF',big:'BIG',bad:'BAD',
+    goodbye:'GOODBYE',lazy:'LAZY',straw:'STRAW',built:'BUILT',forest:'FOREST',sticks:'STICKS',clever:'CLEVER',
+    bricks:'BRICKS',brick:'BRICK',strong:'STRONG',worked:'WORKED',chimney:'CHIMNEY',hunger:'HUNGER',of:'OF',
+    knocked:'KNOCKED',door:'DOOR',said:'SAID',huffed:'HUFFED',blew:'BLEW',and:'AND',ran:'RAN',no:'NO',not:'NO',
+    then:'THEN',fell:'FELL',two:'TWO',quick:'QUICK',quickly:'FAST',come:'COME_IN',here:'HERE',safe:'SAFE',
+    arrived:'ARRIVED',he:'HE',stubborn:'STUBBORN',saw:'SAW',heard:'HEARD',roof:'ROOF',pot:'POT',water:'WATER',
+    fire:'FIRE',hot:'HOT',screamed:'SCREAMED',jumped:'JUMPED',never:'NEVER',back:'CAME_BACK',first:'FIRST',
+    second:'SECOND',third:'THIRD',lesson:'LESSON',together:'TOGETHER',three:'THREE',proud:'PROUD',lived:'LIVED',
+    end:'END',the:'ART',my:'MY',your:'YOUR',but:'BUT',was:'WAS',too:'TOO',moved:'MOVED',fast:'FAST',put:'PUT',
+    came:'CAME',beautiful:'BEAUTIFUL',purple:'PURPLE',more:'MORE',learned:'LEARNED',were:'WERE',
+    happily:'HAPPY_EVER',visit:'VISIT',looked:'LOOKED',up:'UP',let:'LET_ME_IN',hairs:'HAIRS',
+    'chinny-chin-chin':'CHIN',down:'KNOCK_DOWN',turned:'BECOME',could:'COULD',one:'A_ONE',a:'A_ONE'},
+pt:{porquinho:'PIG',porquinhos:'PIGS','mamãe':'MOM',casa:'HOUSE',casas:'HOUSES',lobo:'WOLF',grande:'BIG',mau:'BAD',
+    adeus:'GOODBYE','preguiçoso':'LAZY','preguiçosos':'LAZY',palha:'STRAW',construiu:'BUILT','construíram':'BUILT_PL',
+    floresta:'FOREST',gravetos:'STICKS',esperto:'CLEVER',tijolos:'BRICKS',tijolo:'BRICK',forte:'STRONG',fortes:'STRONG',
+    trabalhou:'WORKED','chaminé':'CHIMNEY',muita:'VERY',muito:'VERY',fome:'HUNGER',de:'OF',bateu:'KNOCKED',porta:'DOOR',
+    'deixe-me':'LET_ME_IN',entrar:'ENTER',disse:'SAID',disseram:'SAID_PL',bufou:'HUFFED',bufar:'HUFFED',soprou:'BLEW',
+    soprar:'BLEW',e:'AND',correu:'RAN',correram:'RAN_PL','não':'NO',na:'IN_THE',no:'IN_THE',nem:'NOT_EVEN',pelos:'HAIRS',
+    do:'OF_THE',da:'OF_THE',meu:'MY',queixinho:'CHIN','então':'THEN',vou:'I_WILL',sua:'YOUR',derrubar:'KNOCK_DOWN',
+    mais:'MORE',caiu:'FELL','até':'UNTIL_TO',depressa:'QUICK',entrem:'COME_IN',aqui:'HERE',estamos:'WE_ARE',
+    seguros:'SAFE',chegou:'ARRIVED','à':'TO_THE',ao:'TO_THE',ele:'HE',ficar:'BECOME',ficou:'BECOME',roxo:'PURPLE',
+    mas:'BUT',era:'WAS',estava:'WAS',demais:'TOO',um:'A_ONE',uma:'A_ONE',se:'ITSELF',moveu:'MOVED',teimoso:'STUBBORN',
+    olhou:'LOOKED',para:'TO_FOR',cima:'UP',viu:'SAW',pela:'THROUGH_THE',primeiro:'FIRST',segundo:'SECOND',
+    terceiro:'THIRD',ouviu:'HEARD',telhado:'ROOF','rápido':'FAST',colocou:'PUT',panela:'POT','água':'WATER',fogo:'FIRE',
+    desceu:'CAME_DOWN',direto:'STRAIGHT',quente:'HOT',gritou:'SCREAMED',saltou:'JUMPED',saiu:'WENT_OUT',que:'THAT',
+    'pôde':'COULD',nunca:'NEVER',voltou:'CAME_BACK',aprenderam:'LEARNED','lição':'LESSON',foram:'WERE',juntos:'TOGETHER',
+    duas:'TWO',dois:'TWO',bonitas:'BEAUTIFUL',lado:'SIDE',outra:'OTHER',veio:'CAME',visitar:'VISIT',
+    orgulhosa:'PROUD',viveram:'LIVED',felizes:'HAPPY',sempre:'ALWAYS',fim:'END',os:'ART',o:'ART',a:'ART',as:'ART',
+    'três':'THREE'},
+fr:{cochon:'PIG',cochons:'PIGS',petit:'LITTLE',petits:'LITTLE',maman:'MOM',maison:'HOUSE',maisons:'HOUSES',loup:'WOLF',
+    grand:'BIG','méchant':'BAD',paresseux:'LAZY',paille:'STRAW',construisit:'BUILT',construisirent:'BUILT_PL',
+    'forêt':'FOREST',branches:'STICKS',malin:'CLEVER',briques:'BRICKS',brique:'BRICK',solide:'STRONG',solides:'STRONG',
+    travailla:'WORKED','cheminée':'CHIMNEY',faim:'HUNGER',de:'OF',frappa:'KNOCKED',porte:'DOOR','laisse-moi':'LET_ME_IN',
+    entrer:'ENTER',dit:'SAID',dirent:'SAID_PL',souffla:'BLEW',souffler:'BLEW',et:'AND',courut:'RAN',coururent:'RAN_PL',
+    non:'NO',alors:'THEN','écroula':'FELL','écrouler':'FELL',deux:'TWO',vite:'FAST',entrez:'COME_IN',ici:'HERE',
+    sommes:'WE_ARE','sécurité':'SAFE',arriva:'ARRIVED',il:'HE','têtu':'STUBBORN',vit:'SAW',entendit:'HEARD',toit:'ROOF',
+    marmite:'POT',eau:'WATER',feu:'FIRE',chaude:'HOT',chaud:'HOT',hurla:'SCREAMED',bondit:'JUMPED',jamais:'NEVER',
+    revint:'CAME_BACK',premier:'FIRST','deuxième':'SECOND','troisième':'THIRD','leçon':'LESSON',ensemble:'TOGETHER',
+    trois:'THREE','fière':'PROUD','vécurent':'LIVED',fin:'END',le:'ART',la:'ART',les:'ART',mon:'MY',ma:'MY',ta:'YOUR',
+    mais:'BUT','était':'WAS',trop:'TOO',bougea:'MOVED',posa:'PUT',descendit:'CAME_DOWN',sortit:'WENT_OUT',put:'COULD',
+    retinrent:'LEARNED',furent:'WERE',belles:'BEAUTIFUL',violet:'PURPLE',plus:'MORE',poils:'HAIRS',menton:'CHIN',
+    jusqu:'UNTIL_TO','à':'TO_THE',par:'THROUGH_THE',dans:'IN_THE',heureux:'HAPPY',toujours:'ALWAYS',vint:'CAME',
+    visite:'VISIT',leva:'LOOKED_UP',devenir:'BECOME',tomba:'FELL',fila:'RAN','côte':'SIDE_BY_SIDE',un:'A_ONE',
+    une:'A_ONE',tout:'VERY',je:'I_WILL',vais:'I_WILL'},
+it:{porcellino:'PIG',porcellini:'PIGS',mamma:'MOM',casa:'HOUSE',case:'HOUSES',lupo:'WOLF',grande:'BIG',cattivo:'BAD',
+    addio:'GOODBYE',pigro:'LAZY',pigri:'LAZY',paglia:'STRAW','costruì':'BUILT',costruirono:'BUILT_PL',foresta:'FOREST',
+    rametti:'STICKS',furbo:'CLEVER',mattoni:'BRICKS',mattone:'BRICK',solida:'STRONG',solide:'STRONG','lavorò':'WORKED',
+    camino:'CHIMNEY',fame:'HUNGER',di:'OF','bussò':'KNOCKED',porta:'DOOR',fammi:'LET_ME_IN',entrare:'ENTER',
+    disse:'SAID',dissero:'SAID_PL','sbuffò':'HUFFED','sbufferò':'HUFFED','soffiò':'BLEW','soffierò':'BLEW',e:'AND',
+    corse:'RAN',corsero:'RAN_PL',no:'NO',allora:'THEN','crollò':'FELL',due:'TWO',presto:'QUICK',entrate:'COME_IN',
+    qui:'HERE',siamo:'WE_ARE',sicuro:'SAFE','arrivò':'ARRIVED',lui:'HE',testardo:'STUBBORN',vide:'SAW','sentì':'HEARD',
+    tetto:'ROOF',pentolone:'POT',acqua:'WATER',fuoco:'FIRE',caldissima:'HOT',caldo:'HOT','urlò':'SCREAMED',
+    'saltò':'JUMPED',mai:'NEVER','tornò':'CAME_BACK',primo:'FIRST',secondo:'SECOND',terzo:'THIRD',lezione:'LESSON',
+    insieme:'TOGETHER',tre:'THREE',orgogliosa:'PROUD',vissero:'LIVED',fine:'END',il:'ART',la:'ART',i:'ART',le:'ART',
+    mio:'MY',mia:'MY',tua:'YOUR',ma:'BUT',era:'WAS',troppo:'TOO',mosse:'MOVED',si:'ITSELF',mise:'PUT',scese:'CAME_DOWN',
+    'uscì':'WENT_OUT','poté':'COULD',impararono:'LEARNED',furono:'WERE',belle:'BEAUTIFUL',viola:'PURPLE','più':'MORE',
+    peli:'HAIRS',mentino:'CHIN',fino:'UNTIL_TO',alla:'TO_THE',dalla:'OF_THE',dal:'THROUGH_THE',nella:'IN_THE',
+    nel:'IN_THE',felici:'HAPPY',contenti:'HAPPY',sempre:'ALWAYS',venne:'CAME','guardò':'LOOKED',su:'UP',
+    'diventò':'BECOME','buttò':'KNOCK_DOWN','giù':'KNOCK_DOWN',cadde:'FELL',veloce:'FAST',nemmeno:'NOT_EVEN',
+    un:'A_ONE',una:'A_ONE'},
+de:{schweinchen:'PIG',mama:'MOM',haus:'HOUSE','häuser':'HOUSES',wolf:'WOLF','große':'BIG','großen':'BIG',
+    'groß':'BIG','böse':'BAD',faul:'LAZY',stroh:'STRAW',baute:'BUILT',bauten:'BUILT_PL',wald:'FOREST',zweige:'STICKS',
+    zweigen:'STICKS',schlau:'CLEVER',ziegel:'BRICKS',ziegeln:'BRICKS',stabil:'STRONG',arbeitete:'WORKED',
+    schornstein:'CHIMNEY',hunger:'HUNGER',aus:'OF',klopfte:'KNOCKED','tür':'DOOR',lass:'LET_ME_IN',rein:'ENTER',
+    sagte:'SAID',sagten:'SAID_PL',schnaubte:'HUFFED',schnaufe:'HUFFED',pustete:'BLEW',puste:'BLEW',blase:'KNOCK_DOWN',
+    und:'AND',rannte:'RAN',rannten:'RAN_PL',nein:'NO',dann:'THEN','stürzte':'FELL',zwei:'TWO',schnell:'FAST',
+    kommt:'COME_IN',hier:'HERE',sind:'WE_ARE',sicher:'SAFE',kam:'CAME',er:'HE',stur:'STUBBORN',sah:'SAW','hörte':'HEARD',
+    dach:'ROOF',kessel:'POT',wasser:'WATER',feuer:'FIRE','heiß':'HOT',schrie:'SCREAMED',sprang:'JUMPED',nie:'NEVER',
+    wieder:'NEVER_AGAIN','zurück':'CAME_BACK',erste:'FIRST',zweite:'SECOND',dritte:'THIRD',lektion:'LESSON',
+    zusammen:'TOGETHER',drei:'THREE',stolz:'PROUD',lebten:'LIVED',ende:'END',der:'ART',die:'ART',das:'ART',den:'ART',
+    dem:'ART',mein:'MY',dein:'YOUR',aber:'BUT',war:'WAS',zu:'TOO',bewegte:'MOVED',sich:'ITSELF',stellte:'PUT',
+    kletterte:'CAME_DOWN',hinunter:'CAME_DOWN',lief:'WENT_OUT',hinaus:'WENT_OUT',konnte:'COULD',lernten:'LEARNED',
+    waren:'WERE','schön':'BEAUTIFUL',violett:'PURPLE',mehr:'MORE','härchen':'HAIRS',kinn:'CHIN',bis:'UNTIL_TO',
+    zum:'TO_THE',durch:'THROUGH_THE',im:'IN_THE',auf:'IN_THE','glücklich':'HAPPY',besuch:'VISIT',schaute:'LOOKED',
+    oben:'UP',um:'KNOCK_DOWN',ganz:'VERY',ein:'A_ONE',eine:'A_ONE',einen:'A_ONE',kleine:'LITTLE',kleinen:'LITTLE'},
+es:{cerditos:'PIGS',cerdito:'PIG',pequeño:'LITTLE','mamá':'MOM',casa:'HOUSE',casas:'HOUSES',lobo:'WOLF',grande:'BIG',
+    malo:'BAD','adiós':'GOODBYE',perezoso:'LAZY',perezosos:'LAZY',paja:'STRAW','construyó':'BUILT',construyeron:'BUILT_PL',
+    bosque:'FOREST',ramas:'STICKS',astuto:'CLEVER',ladrillos:'BRICKS',ladrillo:'BRICK',fuerte:'STRONG',fuertes:'STRONG',
+    'trabajó':'WORKED',chimenea:'CHIMNEY',hambre:'HUNGER',de:'OF','tocó':'KNOCKED',puerta:'DOOR',entrar:'ENTER',
+    'déjame':'LET_ME_IN',dijo:'SAID',dijeron:'SAID_PL','resopló':'HUFFED','sopló':'BLEW',y:'AND','corrió':'RAN',
+    corrieron:'RAN_PL',no:'NO',entonces:'THEN',se:'ITSELF','derrumbó':'FELL',dos:'TWO',hasta:'UNTIL_TO',
+    'rápido':'QUICK',entren:'COME_IN','aquí':'HERE',salvo:'SAFE',estamos:'WE_ARE','llegó':'ARRIVED','él':'HE',
+    terco:'STUBBORN',vio:'SAW','oyó':'HEARD',tejado:'ROOF',olla:'POT',agua:'WATER',fuego:'FIRE',caliente:'HOT',
+    'gritó':'SCREAMED','saltó':'JUMPED',nunca:'NEVER','volvió':'CAME_BACK',primero:'FIRST',primer:'FIRST',
+    segundo:'SECOND',tercero:'THIRD',tercer:'THIRD','lección':'LESSON',juntos:'TOGETHER',tres:'THREE',
+    orgullosa:'PROUD',vivieron:'LIVED',fin:'END',muy:'VERY',mucho:'VERY',el:'ART',la:'ART',los:'ART',las:'ART',
+    mi:'MY',tu:'YOUR',voy:'I_WILL',derribar:'KNOCK_DOWN',siquiera:'NOT_EVEN',pelos:'HAIRS',barbita:'CHIN',
+    era:'WAS',estaba:'WAS',pero:'BUT',movió:'MOVED',arriba:'UP',puso:'PUT','bajó':'CAME_DOWN','salió':'WENT_OUT',
+    pudo:'COULD',aprendieron:'LEARNED',fueron:'WERE',hermosas:'BEAUTIFUL',lado:'SIDE',otra:'OTHER',vino:'CAME',
+    visitar:'VISIT',felices:'HAPPY',siempre:'ALWAYS','miró':'LOOKED',un:'A_ONE',una:'A_ONE',demasiado:'TOO',
+    directo:'STRAIGHT',que:'THAT',para:'TO_FOR',morado:'PURPLE',del:'OF_THE',al:'TO_THE',por:'THROUGH_THE',en:'IN_THE'}
+};
+
+/* ================= STORY DATA =================
+   Segment helpers: S = source-language segment, T = target-language segment.
+   Texts in order: en, pt, fr, it, de, es. {c:'ID'} = target segment whose text is the concept word.
+   n:[...] = tracked items introduced here (footnote). g:1 = inline source gloss. */
+function S(e,p,f,i,d,s){return {f:0,x:{e,p,f,i,d,s}}}
+function T(e,p,f,i,d,s,o){return Object.assign({f:1,x:{e,p,f,i,d,s}},o||{})}
+
+const PAGES = [
+/* ---- Página 1 ---- */
+{ps:[
+ [ {m:1} ],
+ [ S("The three ","Os três ","Les trois ","I tre ","Die drei ","Los tres "),
+   {f:1,c:'PIGS'},
+   S(" lived with their mother in a small house at the edge of the woods. Their "," moravam com a mãe numa casinha na beira do bosque. A "," vivaient avec leur mère dans une petite maison à l'orée du bois. Leur "," vivevano con la loro mamma in una casetta al limitare del bosco. La loro "," wohnten mit ihrer Mutter in einem kleinen Haus am Rand des Waldes. Ihre "," vivían con su mamá en una casita al borde del bosque. Su "),
+   {f:1,c:'MOM',n:['MOM']},
+   S(" loved them very much, but the "," os amava muito, mas a "," les aimait beaucoup, mais la "," voleva loro molto bene, ma la "," hatte sie sehr lieb, aber das "," los quería mucho, pero la "),
+   {f:1,c:'HOUSE',n:['HOUSE']},
+   S(" was getting too small for a family of four."," estava ficando pequena demais para uma família de quatro."," devenait trop petite pour une famille de quatre."," stava diventando troppo piccola per una famiglia di quattro."," wurde zu klein für eine vierköpfige Familie."," se estaba quedando pequeña para una familia de cuatro.")],
+ [ S("One morning, ","Uma manhã, a ","Un matin, ","Una mattina, ","Eines Morgens rief die ","Una mañana, la "),
+   {f:1,c:'MOM'},
+   S(" called the "," chamou os "," appela les "," chiamò i "," die "," llamó a los "),
+   {f:1,c:'PIGS'},
+   S(" together. “You are grown now,” she said. “It is time to go out into the world and build a "," e disse: “Vocês já estão crescidos. É hora de sair pelo mundo e construir uma "," et leur dit : « Vous êtes grands maintenant. Il est temps d'aller par le monde et de construire une "," e disse: “Ormai siete grandi. È ora di andare per il mondo e di costruirvi una "," zusammen. „Ihr seid jetzt groß“, sagte sie. „Es ist Zeit, in die Welt hinauszugehen und ein eigenes "," juntos. “Ya están grandes,” dijo. “Es hora de salir al mundo y construir una "),
+   {f:1,c:'HOUSE'},
+   S(" of your own.”"," só de vocês.”"," bien à vous. »"," tutta vostra.”"," zu bauen.“"," propia.”")]
+]},
+/* ---- Página 2 ---- */
+{ps:[
+ [ S("“Be careful,” said ","“Cuidado,” disse a ","« Faites attention », dit ","“State attenti,” disse ","„Passt gut auf“, sagte die ","“Ten cuidado,” dijo la "),
+   {f:1,c:'MOM'},
+   S(", hugging each ",", abraçando cada "," en serrant chaque "," abbracciando ogni "," und umarmte jedes ",", abrazando a cada "),
+   {f:1,c:'PIG',n:['PIG']},
+   S(". “The woods are lovely, but ",". “O bosque é lindo, mas ",". « La forêt est belle, mais ",". “Il bosco è bello, ma ",". „Der Wald ist schön, aber ",". “El bosque es hermoso, pero "),
+   T("the big bad wolf","o grande lobo mau","le grand méchant loup","il grande lupo cattivo","der große böse Wolf","el lobo grande y malo",{g:1,n:['WOLF','BIG','BAD']}),
+   S(" lives there. Build your "," mora lá. Construam uma "," y habite. Construisez une "," ci abita. Costruite una "," wohnt dort. Baut euer "," vive ahí. Construyan su "),
+   {f:1,c:'HOUSE'},
+   S(" strong, and never open the door for anyone.”"," bem forte, e nunca abram a porta para ninguém.”"," bien solide, et n'ouvrez jamais la porte à personne. »"," bella solida, e non aprite mai la porta a nessuno.”"," schön stabil, und macht niemandem die Tür auf.“"," bien fuerte, y nunca le abran la puerta a nadie.”")],
+ [ S("The three ","Os três ","Les trois ","I tre ","Die drei ","Los tres "),
+   {f:1,c:'PIGS'},
+   S(" kissed their "," beijaram a "," embrassèrent leur "," baciarono la "," küssten ihre "," besaron a su "),
+   {f:1,c:'MOM'},
+   S(", said ",", disseram ",", dirent ",", dissero ",", sagten ",", dijeron "),
+   {f:1,c:'GOODBYE',n:['GOODBYE']},
+   S(", and set off down the road, each one looking for the perfect place to build a "," e partiram pela estrada, cada um procurando o lugar perfeito para construir uma "," et partirent sur la route, chacun cherchant l'endroit parfait pour construire une "," e partirono lungo la strada, ognuno in cerca del posto perfetto per costruirsi una "," und zogen die Straße entlang, jedes auf der Suche nach dem perfekten Platz für ein eigenes ",", y salieron por el camino, cada uno buscando el lugar perfecto para construir una "),
+   {f:1,c:'HOUSE'},
+   S(".",".",".",".",".",".")]
+]},
+/* ---- Página 3 ---- */
+{ps:[
+ [ S("The first ","O primeiro ","Le premier ","Il primo ","Das erste ","El primer "),
+   {f:1,c:'PIG'},
+   S(" did not walk very far. He was a little "," não andou muito longe. Ele era um pouco "," ne marcha pas très loin. Il était un peu "," non camminò molto lontano. Era un po' "," lief nicht sehr weit. Es war ein bisschen "," no caminó muy lejos. Era un poco "),
+   {f:1,c:'LAZY',g:1,n:['LAZY']},
+   S(" and liked naps much more than work. In a sunny field he found a big pile of straw."," e gostava muito mais de cochilos do que de trabalho. Num campo ensolarado, encontrou um monte de palha."," et aimait la sieste bien plus que le travail. Dans un champ ensoleillé, il trouva un gros tas de paille."," e amava i pisolini molto più del lavoro. In un campo assolato trovò un gran mucchio di paglia."," und mochte Nickerchen viel lieber als Arbeit. Auf einem sonnigen Feld fand es einen großen Haufen Stroh."," y le gustaban las siestas mucho más que el trabajo. En un campo soleado encontró un gran montón de paja.")],
+ [ T("“Straw!”","“Palha!”","« De la paille ! »","“Paglia!”","„Stroh!“","“¡Paja!”",{n:['STRAW']}),
+   S(" he said. “I can build a "," disse ele. “Posso construir uma "," dit-il. « Je peux construire une "," disse. “Posso costruirmi una "," sagte es. „Ich kann in einem Nachmittag ein "," dijo. “Puedo construir una "),
+   {f:1,c:'HOUSE'},
+   S(" of "," de "," de "," di "," aus "," de "),
+   {f:1,c:'STRAW'},
+   S(" in one afternoon, and then I can rest.”"," numa tarde só, e depois posso descansar.”"," en un après-midi, et ensuite je pourrai me reposer. »"," in un pomeriggio solo, e poi potrò riposare.”"," bauen, und danach kann ich mich ausruhen.“"," en una sola tarde, y después podré descansar.”")],
+ [ S("So he ","E assim ele ","Alors il ","E così ","Also ","Así que "),
+   {f:1,c:'BUILT',n:['BUILT']},
+   S(" his "," a sua "," sa "," la sua "," es sein "," su "),
+   {f:1,c:'HOUSE'},
+   S(" of "," de "," de "," di "," aus "," de "),
+   {f:1,c:'STRAW'},
+   S(". It was soft and golden — and not very strong. But the first ",". Era macia e dourada — e não muito forte. Mas o primeiro ",". Elle était douce et dorée — et pas très solide. Mais le premier ",". Era morbida e dorata — e non molto solida. Ma il primo ",". Es war weich und golden — und nicht besonders stabil. Aber das erste ",". Era suave y dorada — y no muy fuerte. Pero el primer "),
+   {f:1,c:'PIG'},
+   S(" was not thinking about the "," não estava pensando no "," ne pensait pas au "," non pensava al "," dachte nicht an den "," no estaba pensando en el "),
+   {f:1,c:'WOLF'},
+   S(". He lay down in the sun and took a nap.",". Deitou no sol e tirou um cochilo.",". Il s'allongea au soleil et fit une sieste.",". Si sdraiò al sole e fece un pisolino.",". Es legte sich in die Sonne und machte ein Nickerchen.",". Se acostó al sol y se echó una siesta.")]
+]},
+/* ---- Página 4 ---- */
+{ps:[
+ [ S("The second ","O segundo ","Le deuxième ","Il secondo ","Das zweite ","El segundo "),
+   {f:1,c:'PIG'},
+   S(" walked a little farther, to the edge of the "," andou um pouco mais longe, até a beira da "," marcha un peu plus loin, jusqu'à la lisière de la "," camminò un po' più lontano, fino al margine della "," lief ein Stück weiter, bis zum Rand des "," caminó un poco más lejos, hasta el borde del "),
+   {f:1,c:'FOREST',n:['FOREST']},
+   S(". There the ground was covered with dry ",". Ali o chão estava coberto de ",". Là, le sol était couvert de ",". Lì il terreno era coperto di ",". Dort war der Boden bedeckt mit trockenen ",". Ahí el suelo estaba cubierto de "),
+   T("sticks","gravetos","branches","rametti","Zweigen","ramas secas",{n:['STICKS']}),
+   S(".",".",".",".",".",".")],
+ [ T("“Sticks!”","“Gravetos!”","« Des branches ! »","“Rametti!”","„Zweige!“","“¡Ramas!”"),
+   S(" he said. “Sticks are stronger than "," disse ele. “Gravetos são mais fortes que "," dit-il. « Les branches, c'est plus solide que la "," disse. “I rametti sono più robusti della "," sagte es. „Zweige sind stärker als "," dijo. “Las ramas son más fuertes que la "),
+   {f:1,c:'STRAW'},
+   S(". I can build a fine ",". Posso construir uma boa ",". Je peux construire une belle ",". Posso costruirmi una bella ",". Ich kann in zwei Tagen ein feines ",". Puedo construir una buena "),
+   {f:1,c:'HOUSE'},
+   S(" in two days.”"," em dois dias.”"," en deux jours. »"," in due giorni.”"," bauen.“"," en dos días.”")],
+ [ S("So he ","E assim ele ","Alors il ","E così ","Also ","Así que "),
+   {f:1,c:'BUILT'},
+   S(" his "," a sua "," sa "," la sua "," es sein "," su "),
+   {f:1,c:'HOUSE'},
+   S(" of "," de "," de "," di "," aus "," de "),
+   T("sticks","gravetos","branches","rametti","Zweigen","ramas"),
+   S(". It was taller than the ",". Era mais alta que a ",". Elle était plus haute que la ",". Era più alta della ",". Es war höher als das ",". Era más alta que la "),
+   {f:1,c:'HOUSE'},
+   S(" of "," de "," de "," di "," aus "," de "),
+   {f:1,c:'STRAW'},
+   S(", and it creaked in the wind. “Good enough,” he said, and went inside to play.",", e rangia com o vento. “Está bom assim,” disse ele, e entrou para brincar.",", et elle craquait dans le vent. « Ça suffira », dit-il, et il entra jouer.",", e scricchiolava nel vento. “Va bene così,” disse, e entrò a giocare.",", und es knarrte im Wind. „Gut genug“, sagte es und ging hinein zum Spielen.",", y crujía con el viento. “Está bien así,” dijo, y entró a jugar.")]
+]},
+/* ---- Página 5 ---- */
+{ps:[
+ [ S("The third ","O terceiro ","Le troisième ","Il terzo ","Das dritte ","El tercer "),
+   {f:1,c:'PIG'},
+   S(" was "," era "," était "," era "," war "," era "),
+   {f:1,c:'CLEVER',g:1,n:['CLEVER']},
+   S(" and patient. He walked all day, until he met a man selling "," e paciente. Andou o dia inteiro, até encontrar um homem vendendo "," et patient. Il marcha toute la journée, jusqu'à rencontrer un homme qui vendait des "," e paziente. Camminò tutto il giorno, finché incontrò un uomo che vendeva "," und geduldig. Es lief den ganzen Tag, bis es einen Mann traf, der "," y paciente. Caminó todo el día, hasta que encontró a un hombre que vendía "),
+   {f:1,c:'BRICKS',n:['BRICKS']},
+   S(".",".",".",".", " verkaufte.",".")],
+ [ S("“","“","« ","“","„","“"),
+   {f:1,c:'BRICKS'},
+   S(" are heavy,” said the "," são pesados,” disse o "," sont lourdes », dit le "," sono pesanti,” disse il "," sind schwer“, sagte das "," son pesados,” dijo el "),
+   {f:1,c:'PIG'},
+   S(", “and building with them is slow. But a ",", “e construir com eles é devagar. Mas uma ",", « et construire avec, c'est lent. Mais une ",", “e costruirci è lento. Ma una ",", „und mit ihnen zu bauen ist langsam. Aber ein ",", “y construir con ellos es lento. Pero una "),
+   {f:1,c:'HOUSE'},
+   S(" of "," de "," de "," di "," aus "," de "),
+   {f:1,c:'BRICKS'},
+   S(" is "," é "," est "," è "," ist "," es "),
+   {f:1,c:'STRONG',n:['STRONG']},
+   S(". And when ",". E quando ",". Et quand ",". E quando ",". Und wenn ",". Y cuando "),
+   T("the big bad wolf","o grande lobo mau","le grand méchant loup","il grande lupo cattivo","der große böse Wolf","el lobo grande y malo"),
+   S(" comes — and he will come — a strong "," vier — e ele vai vir — uma boa "," viendra — et il viendra — une solide "," verrà — e verrà — una robusta "," kommt — und er wird kommen — dann ist ein stabiles "," venga — y va a venir — una "),
+   {f:1,c:'HOUSE'},
+   S(" is exactly what a "," é exatamente o que um "," est exactement ce qu'il faut à un "," è esattamente ciò che serve a un "," genau das, was ein "," fuerte es exactamente lo que un "),
+   {f:1,c:'PIG'},
+   S(" needs.”"," precisa.”",". »",".”"," braucht.“"," necesita.”")],
+ [ S("So he ","E assim ele ","Alors il ","E così ","Also ","Así que "),
+   {f:1,c:'WORKED',n:['WORKED']},
+   S(". He ",". Ele ",". Il ",". "," es. Es ",". "),
+   {f:1,c:'WORKED'},
+   S(" all day, every day, for a whole week. He "," o dia todo, todos os dias, por uma semana inteira. Ele "," toute la journée, tous les jours, pendant une semaine entière. Il "," tutto il giorno, ogni giorno, per una settimana intera. "," den ganzen Tag, jeden Tag, eine ganze Woche lang. Es "," todo el día, todos los días, durante una semana entera. "),
+   {f:1,c:'BUILT'},
+   S(" thick walls of "," paredes grossas de "," d'épais murs de "," mura spesse di "," dicke Mauern aus "," muros gruesos de "),
+   {f:1,c:'BRICKS'},
+   S(", a red roof, and a tall ",", um telhado vermelho e uma alta ",", un toit rouge et une haute ",", un tetto rosso e un alto ",", ein rotes Dach und einen hohen ",", un tejado rojo, y una alta "),
+   {f:1,c:'CHIMNEY',g:1,n:['CHIMNEY']},
+   S(" right on top."," bem no topo."," tout en haut."," proprio in cima."," ganz oben drauf."," justo encima.")]
+]},
+/* ---- Página 6 ---- */
+{ps:[
+ [ S("Soon enough, ","Não demorou, e ","Bientôt, ","Ben presto, ","Schon bald kam ","Pronto, "),
+   T("the big bad wolf","o grande lobo mau","le grand méchant loup","il grande lupo cattivo","der große böse Wolf","el lobo grande y malo"),
+   S(" came out of the "," saiu da "," sortit de la "," uscì dalla "," aus dem "," salió del "),
+   {f:1,c:'FOREST'},
+   S(". He was thin and hungry — he had ",". Ele estava magro e faminto — estava com ",". Il était maigre et affamé — il avait ",". Era magro e affamato — aveva ",". Er war dünn und hungrig — er hatte ",". Estaba flaco y hambriento — tenía "),
+   {f:1,c:'HUNGER',n:['HUNGER']},
+   S(" — and he smelled "," — e sentiu cheiro de "," — et il sentit une odeur de "," — e sentì odore di "," — und er roch "," — y olió a "),
+   {f:1,c:'PIG'},
+   S(" on the wind."," no vento."," dans le vent."," nel vento."," im Wind."," en el viento.")],
+ [ S("He followed the smell to the ","Seguiu o cheiro até a ","Il suivit l'odeur jusqu'à la ","Seguì l'odore fino alla ","Er folgte dem Geruch bis zum ","Siguió el olor hasta la "),
+   {f:1,c:'H_STRAW',n:['OF']},
+   S(" and "," e "," et "," e "," und "," y "),
+   {f:1,c:'KNOCKED',n:['KNOCKED']},
+   S(" on the "," na "," à la "," alla "," an die "," a la "),
+   {f:1,c:'DOOR',n:['DOOR']},
+   S(". Knock, knock, knock.",". Toc, toc, toc.",". Toc, toc, toc.",". Toc, toc, toc.",". Klopf, klopf, klopf.",". Toc, toc, toc.")],
+ [ S("“Little pig, little pig, ","“Porquinho, porquinho, ","« Petit cochon, petit cochon, ","“Porcellino, porcellino, ","„Schweinchen, Schweinchen, ","“Cerdito, cerdito, "),
+   {f:1,c:'LET_ME_IN',g:1,n:['LET_ME_IN']},
+   S("” he called sweetly.","” chamou ele com voz doce."," », appela-t-il d'une voix douce.","” chiamò con voce dolce.","“, rief er mit süßer Stimme.","” llamó con voz dulce.")],
+ [ S("“No, no!” ","“Não, não!” ","« Non, non ! » ","“No, no!” ","„Nein, nein!“, ","“¡No, no!” "),
+   {f:1,c:'SAID',n:['SAID']},
+   S(" the first "," o primeiro "," le premier "," il primo "," das erste "," el primer "),
+   {f:1,c:'PIG'},
+   S(", hiding under his bed. “Not by the hair of my chinny-chin-chin!”",", escondido embaixo da cama. “Nem pelos pelos do meu queixinho!”",", caché sous son lit. « Pas par les poils de mon petit menton ! »",", nascosto sotto il letto. “No, per i peli del mio mentino!”",", das sich unter dem Bett versteckte. „Nicht um die Härchen an meinem Kinn!“",", escondido bajo su cama. “¡No, por los pelos de mi barbita!”")],
+ [ S("“Then I'll huff, and I'll puff, and I'll blow your ","“Então vou bufar, vou soprar, e a sua ","« Alors je vais souffler, souffler, et ta ","“Allora sbufferò, soffierò, e la tua ","„Dann schnaufe ich und puste ich und blase dein ","“Entonces resoplaré, y soplaré, y tu "),
+   {f:1,c:'HOUSE'},
+   S(" down!” "," vou derrubar!” "," va s'écrouler ! » "," butterò giù!” "," um!“, "," derribaré!” "),
+   {f:1,c:'SAID'},
+   S(" the "," o "," le "," il "," der "," dijo el "),
+   {f:1,c:'WOLF'},
+   S(".",".",".",".",".",".")]
+]},
+/* ---- Página 7 ---- */
+{ps:[
+ [ S("So the ","E então o ","Alors le ","E allora il ","Da holte der ","Así que el "),
+   {f:1,c:'WOLF'},
+   S(" took a deep breath. He "," respirou fundo. Ele "," prit une grande inspiration. Il "," fece un gran respiro. "," tief Luft. Er "," tomó aire profundamente. "),
+   {f:1,c:'HUFFED',n:['HUFFED']},
+   S(", and he ",", e ",", et il ",", e ",", und er ",", y "),
+   {f:1,c:'BLEW',n:['BLEW']},
+   S("... and the ","... e a ","... et la ","... e la ","... und das ","... y la "),
+   {f:1,c:'H_STRAW'},
+   S(" flew apart like a haystack in a storm!"," voou pelos ares como feno na ventania!"," s'envola comme du foin dans la tempête !"," volò via come fieno nella tempesta!"," flog auseinander wie Heu im Sturm!"," ¡voló en pedazos como heno en una tormenta!")],
+ [ S("The first ","O primeiro ","Le premier ","Il primo ","Das erste ","El primer "),
+   {f:1,c:'PIG'},
+   S(" squealed "," guinchou "," poussa un cri "," strillò "," quiekte "," chilló "),
+   T("and ran","e correu","et courut","e corse","und rannte","y corrió",{n:['AND','RAN']}),
+   S(" — down the road, all the way to his brother's "," — pela estrada afora, até a "," — sur la route, jusqu'à la "," — lungo la strada, fino alla "," — die Straße entlang, bis zum "," — por el camino, hasta la "),
+   {f:1,c:'H_STICKS'},
+   S("."," do irmão."," de son frère."," di suo fratello."," seines Bruders."," de su hermano.")],
+ [ S("“The ","“O ","« Le ","“Il ","„Der ","“El "),
+   {f:1,c:'WOLF'},
+   S(" is coming!” he cried. “My "," está vindo!” gritou ele. “A minha "," arrive ! » cria-t-il. « Ma "," sta arrivando!” gridò. “La mia "," kommt!“, rief es. „Mein "," ya viene!” gritó. “Mi "),
+   {f:1,c:'HOUSE'},
+   S(" is gone — he blew it down with one puff!”"," já era — ele derrubou tudo com um sopro!”"," n'est plus — il l'a soufflée d'un seul souffle ! »"," non c'è più — l'ha buttata giù con un soffio solo!”"," ist weg — er hat es mit einem einzigen Pust umgeblasen!“"," ya no está — ¡la derribó de un solo soplido!”")],
+ [ S("The second ","O segundo ","Le deuxième ","Il secondo ","Das zweite ","El segundo "),
+   {f:1,c:'PIG'},
+   S(" locked the "," trancou a "," verrouilla la "," chiuse a chiave la "," verriegelte die "," cerró con llave la "),
+   {f:1,c:'DOOR'},
+   S(". “Don't worry,” he ",". “Fica tranquilo,” ",". « Ne t'inquiète pas », ",". “Tranquillo,” ",". „Keine Sorge“, ",". “No te preocupes,” "),
+   {f:1,c:'SAID'},
+   S(". “My "," ele. “A minha ","-il. « Ma ",". “La mia "," es. „Mein ",". “Mi "),
+   {f:1,c:'HOUSE'},
+   S(" is made of "," é de "," est en "," è di "," ist aus "," es de "),
+   T("sticks","gravetos","branches","rametti","Zweigen","ramas"),
+   S(". It is ",". Ela é ",". Elle est ",". È ",". Es ist ",". Es "),
+   {f:1,c:'STRONG'},
+   S(".”",".”",". »",".”",".“",".”")],
+ [ S("It was not that strong.","Não era tão forte assim.","Elle n'était pas si solide que ça.","Non era poi così solida.","So stabil war es nicht.","No era tan fuerte así.")]
+]},
+/* ---- Página 8 ---- */
+{ps:[
+ [ S("The ","O ","Le ","Il ","Der ","El "),
+   {f:1,c:'WOLF'},
+   S(" arrived at the "," chegou à "," arriva à la "," arrivò alla "," kam zum "," llegó a la "),
+   {f:1,c:'H_STICKS'},
+   S(" and "," e "," et "," e "," und "," y "),
+   {f:1,c:'KNOCKED'},
+   S(" on the "," na "," à la "," alla "," an die "," a la "),
+   {f:1,c:'DOOR'},
+   S(".",".",".",".",".",".")],
+ [ T("“Little pig, little pig, let me in!”","“Porquinho, porquinho, deixe-me entrar!”","« Petit cochon, petit cochon, laisse-moi entrer ! »","“Porcellino, porcellino, fammi entrare!”","„Schweinchen, Schweinchen, lass mich rein!“","“¡Cerdito, cerdito, déjame entrar!”")],
+ [ T("“No, no!”","“Não, não!”","« Non, non ! »","“No, no!”","„Nein, nein!“","“¡No, no!”",{n:['NO']}),
+   S(" "," "," "," ",", "," "),
+   {f:1,c:'SAID_PL',n:['SAID_PL']},
+   S(" the two "," os dois "," les deux "," i due "," die zwei "," los dos "),
+   {f:1,c:'PIGS'},
+   S(" together. “"," juntos. “"," ensemble. « "," insieme. “"," gleichzeitig. „"," juntos. “"),
+   {f:1,c:'NOT_BY_HAIRS',g:1,n:['NOT_BY_HAIRS']},
+   S("”","”"," »","”","“","”")],
+ [ T("Then","Então","Alors","Allora","Dann","Entonces",{n:['THEN']}),
+   S(", "," "," "," "," ",", "),
+   {f:1,c:'SAID'},
+   S(" the "," o "," le "," il "," der "," dijo el "),
+   {f:1,c:'WOLF'},
+   S(" with a hungry grin: “"," com um sorriso faminto: “"," avec un sourire affamé : « "," con un sorriso affamato: “"," mit hungrigem Grinsen: „"," con una sonrisa hambrienta: “"),
+   {f:1,c:'HUFFPUFF',g:1,n:['HUFFPUFF']},
+   S("”","”"," »","”","“","”")]
+]},
+/* ---- Página 9 ---- */
+{ps:[
+ [ T("And the wolf huffed. And he blew. And he blew harder...","E o lobo bufou. E soprou. E soprou mais forte...","Et le loup souffla. Et souffla. Et souffla plus fort...","E il lupo sbuffò. E soffiò. E soffiò più forte...","Und der Wolf schnaubte. Und pustete. Und pustete noch stärker...","Y el lobo resopló. Y sopló. Y sopló más fuerte...",{n:['ART','MORE']}),
+   S(" and the "," e a "," et la "," e la "," und das "," y la "),
+   {f:1,c:'H_STICKS'},
+   S(" "," "," "," "," "," "),
+   {f:1,c:'FELL',g:1,n:['FELL']},
+   S(". Sticks flew everywhere!",". Gravetos para todo lado!",". Des branches partout !",". Rametti dappertutto!",". Zweige flogen überall herum!",". ¡Ramas volaron por todas partes!")],
+ [ T("The two little pigs ran and ran,","Os dois porquinhos correram e correram,","Les deux petits cochons coururent, coururent,","I due porcellini corsero e corsero,","Die zwei Schweinchen rannten und rannten,","Los dos cerditos corrieron y corrieron,",{n:['TWO','RAN_PL']}),
+   S(" through the "," pela "," à travers la "," attraverso la "," durch den "," por el "),
+   {f:1,c:'FOREST'},
+   S(", ",", ",", ",", ",", ",", "),
+   T("all the way to the house of bricks","até a casa de tijolos","jusqu'à la maison de briques","fino alla casa di mattoni","bis zum Haus aus Ziegeln","hasta la casa de ladrillos",{n:['UNTIL_TO']}),
+   S(" of their brother."," do irmão."," de leur frère."," del fratello."," ihres Bruders."," de su hermano.")],
+ [ T("“Quick!”","“Depressa!”","« Vite ! »","“Presto!”","„Schnell!“","“¡Rápido!”",{n:['QUICK']}),
+   S(" "," "," "," ",", "," "),
+   {f:1,c:'SAID'},
+   S(" the third "," o terceiro "," le troisième "," il terzo "," das dritte "," dijo el tercer "),
+   {f:1,c:'PIG'},
+   S(", opening the ",", abrindo a ",", en ouvrant la ",", aprendo la "," und öffnete die ",", abriendo la "),
+   {f:1,c:'DOOR'},
+   S(". ",". ",". ",". ",". ",". "),
+   T("“Come in!","“Entrem!","« Entrez !","“Entrate!","„Kommt rein!","“¡Entren!",{n:['COME_IN']}),
+   S(" My "," A minha "," Ma "," La mia "," Mein "," Mi "),
+   {f:1,c:'HOUSE'},
+   S(" is "," é "," est "," è "," ist "," es "),
+   {f:1,c:'STRONG'},
+   S(". ",". ",". ",". ",". ",". "),
+   {f:1,c:'HERE_SAFE',g:1,n:['HERE_SAFE']},
+   S(".”",".”",". »",".”",".“",".”")]
+]},
+/* ---- Página 10 ---- */
+{ps:[
+ [ T("The wolf arrived at the house of bricks. He knocked on the door","O lobo chegou à casa de tijolos. Ele bateu na porta","Le loup arriva à la maison de briques. Il frappa à la porte","Il lupo arrivò alla casa di mattoni. Bussò alla porta","Der Wolf kam beim Haus aus Ziegeln an. Er klopfte an die Tür","El lobo llegó a la casa de ladrillos. Tocó a la puerta",{n:['ARRIVED','HE']}),
+   S(" — bang, bang, BANG!"," — pá, pá, PÁ!"," — boum, boum, BOUM !"," — bum, bum, BUM!"," — bumm, bumm, BUMM!"," — ¡pum, pum, PUM!")],
+ [ T("“Little pig, little pig, let me in!”","“Porquinho, porquinho, deixe-me entrar!”","« Petit cochon, petit cochon, laisse-moi entrer ! »","“Porcellino, porcellino, fammi entrare!”","„Schweinchen, Schweinchen, lass mich rein!“","“¡Cerdito, cerdito, déjame entrar!”")],
+ [ S("“","“","« ","“","„","“"),
+   {f:1,c:'NOT_BY_HAIRS'},
+   S("” ","” "," » ","” ","“, ","” "),
+   T("said the three little pigs.","disseram os três porquinhos.","dirent les trois petits cochons.","dissero i tre porcellini.","sagten die drei Schweinchen.","dijeron los tres cerditos.",{n:['THREE']})],
+ [ T("“Then I'll huff, and I'll puff, and I'll blow your house down!”","“Então vou bufar, vou soprar, e a sua casa vou derrubar!”","« Alors je vais souffler, et souffler, et ta maison va s'écrouler ! »","“Allora sbufferò, soffierò, e la tua casa butterò giù!”","„Dann schnaufe ich und puste ich und blase dein Haus um!“","“¡Entonces resoplaré, y soplaré, y tu casa derribaré!”")],
+ [ T("The wolf huffed. He blew. He huffed and blew","O lobo bufou. Soprou. Bufou e soprou","Le loup souffla. Souffla. Souffla et souffla","Il lupo sbuffò. Soffiò. Sbuffò e soffiò","Der Wolf schnaubte. Pustete. Schnaubte und pustete","El lobo resopló. Sopló. Resopló y sopló"),
+   T(" until he turned purple"," até ficar roxo"," jusqu'à devenir tout violet"," finché diventò tutto viola"," bis er ganz violett war"," hasta que se puso morado",{g:1,n:['PURPLE']}),
+   S(". ",". ",". ",". ",". ",". "),
+   T("But the house of bricks did not fall. The house was too strong. Not one brick moved.","Mas a casa de tijolos não caiu. A casa era forte demais. Nem um tijolo se moveu.","Mais la maison de briques ne s'écroula pas. La maison était trop solide. Pas une brique ne bougea.","Ma la casa di mattoni non crollò. La casa era troppo solida. Nemmeno un mattone si mosse.","Aber das Haus aus Ziegeln stürzte nicht ein. Das Haus war zu stabil. Kein einziger Ziegel bewegte sich.","Pero la casa de ladrillos no se derrumbó. La casa era demasiado fuerte. Ni un solo ladrillo se movió.",{g:1,n:['BUT','WAS','TOO_STRONG']})]
+]},
+/* ---- Página 11 ---- */
+{ps:[
+ [ T("But the wolf was stubborn. He looked up and saw the chimney.","Mas o lobo era teimoso. Ele olhou para cima e viu a chaminé.","Mais le loup était têtu. Il leva les yeux et vit la cheminée.","Ma il lupo era testardo. Guardò in su e vide il camino.","Aber der Wolf war stur. Er schaute nach oben und sah den Schornstein.","Pero el lobo era terco. Miró hacia arriba y vio la chimenea.",{g:1,n:['STUBBORN','SAW']})],
+ [ S("“Aha!” ","“Aha!” ","« Aha ! » ","“Aha!” ","„Aha!“, ","“¡Aja!” "),
+   T("said the wolf. “I'll go in through the chimney!”","disse o lobo. “Vou entrar pela chaminé!”","dit le loup. « Je vais entrer par la cheminée ! »","disse il lupo. “Entrerò dal camino!”","sagte der Wolf. „Ich gehe durch den Schornstein rein!“","dijo el lobo. “¡Entraré por la chimenea!”",{g:1})],
+ [ T("But the third little pig was clever","Mas o terceiro porquinho era esperto","Mais le troisième petit cochon était malin","Ma il terzo porcellino era furbo","Aber das dritte Schweinchen war schlau","Pero el tercer cerdito era astuto",{n:['THIRD']}),
+   S(", remember? ",", lembra? ",", vous vous souvenez ? ",", ricordate? ",", erinnert ihr euch? ",", ¿recuerdan? "),
+   T("He heard the wolf on the roof. Quickly, he put a big pot of water on the fire.","Ele ouviu o lobo no telhado. Rápido, colocou uma panela grande de água no fogo.","Il entendit le loup sur le toit. Vite, il posa une grande marmite d'eau sur le feu.","Sentì il lupo sul tetto. Veloce, mise un gran pentolone d'acqua sul fuoco.","Es hörte den Wolf auf dem Dach. Schnell stellte es einen großen Kessel Wasser aufs Feuer.","Oyó al lobo en el tejado. Rápido, puso una olla grande de agua en el fuego.",{g:1,n:['HEARD','ROOF','POT','WATER','FIRE']})],
+ [ T("The wolf came down the chimney and","O lobo desceu pela chaminé e","Le loup descendit par la cheminée et","Il lupo scese dal camino e","Der Wolf kletterte den Schornstein hinunter und","El lobo bajó por la chimenea y"),
+   S(" — SPLASH! — "," — SPLASH! — "," — SPLASH ! — "," — SPLASH! — "," — PLATSCH! — "," — ¡SPLASH! — "),
+   T("fell right into the pot! The water was very hot!","caiu direto na panela! A água estava muito quente!","tomba droit dans la marmite ! L'eau était très chaude !","cadde dritto nel pentolone! L'acqua era caldissima!","fiel direkt in den Kessel! Das Wasser war sehr heiß!","¡cayó justo en la olla! ¡El agua estaba muy caliente!",{g:1,n:['HOT']})],
+ [ S("“AIIIII!” ","“AIIIII!” ","« AIIIII ! » ","“AIIIII!” ","„AIIIII!“, ","“¡AIIIII!” "),
+   T("screamed the wolf. He jumped out of the pot, ran out the door, and raced into the forest as fast as he could.","gritou o lobo. Ele saltou da panela, saiu pela porta, e correu para a floresta o mais rápido que pôde.","hurla le loup. Il bondit hors de la marmite, sortit par la porte, et fila dans la forêt aussi vite qu'il put.","urlò il lupo. Saltò fuori dal pentolone, uscì dalla porta, e corse nella foresta più veloce che poté.","schrie der Wolf. Er sprang aus dem Kessel, lief zur Tür hinaus und rannte in den Wald, so schnell er konnte.","gritó el lobo. Saltó fuera de la olla, salió corriendo por la puerta, y corrió al bosque tan rápido como pudo.",{g:1,n:['SCREAMED','JUMPED']})]
+]},
+/* ---- Página 12 ---- */
+{tr:1, ps:[
+ [ T("The wolf never came back.","O lobo nunca mais voltou.","Le loup ne revint plus jamais.","Il lupo non tornò mai più.","Der Wolf kam nie wieder zurück.","El lobo nunca más volvió.",{n:['NEVER_AGAIN','CAME_BACK']})],
+ [ T("The first and the second little pig learned their lesson. They were never lazy again. Together, the three built two more houses — houses of bricks, strong and beautiful — side by side.","O primeiro e o segundo porquinho aprenderam a lição. Nunca mais foram preguiçosos. Juntos, os três construíram mais duas casas — casas de tijolos, fortes e bonitas — uma ao lado da outra.","Le premier et le deuxième petit cochon retinrent la leçon. Ils ne furent plus jamais paresseux. Ensemble, les trois construisirent deux autres maisons — des maisons de briques, solides et belles — côte à côte.","Il primo e il secondo porcellino impararono la lezione. Non furono mai più pigri. Insieme, i tre costruirono altre due case — case di mattoni, solide e belle — una accanto all'altra.","Das erste und das zweite Schweinchen lernten ihre Lektion. Sie waren nie wieder faul. Zusammen bauten die drei zwei weitere Häuser — Häuser aus Ziegeln, stabil und schön — Seite an Seite.","El primero y el segundo cerdito aprendieron la lección. Nunca más fueron perezosos. Juntos, los tres construyeron dos casas más — casas de ladrillos, fuertes y hermosas — una al lado de la otra.",{n:['LESSON','TOGETHER']})],
+ [ T("Their mom came to visit and was very proud.","A mamãe veio visitar e ficou muito orgulhosa.","Leur maman vint leur rendre visite et fut très fière.","La mamma venne a trovarli e fu molto orgogliosa.","Die Mama kam zu Besuch und war sehr stolz.","Su mamá vino a visitarlos y estaba muy orgullosa.",{n:['PROUD']})],
+ [ T("And the three little pigs lived happily ever after.","E os três porquinhos viveram felizes para sempre.","Et les trois petits cochons vécurent heureux pour toujours.","E i tre porcellini vissero per sempre felici e contenti.","Und die drei Schweinchen lebten glücklich bis ans Ende ihrer Tage.","Y los tres cerditos vivieron felices para siempre.",{n:['HAPPY_EVER']})],
+ [ {f:1,c:'END',b:1} ]
+]}
+];
+/*ENGINE*/
+const LK = {en:'e',pt:'p',fr:'f',it:'i',de:'d',es:'s'};
+const WORD = /[\p{L}\p{M}]+(?:-[\p{L}\p{M}]+)*/gu;
+let SRC='en', TGT='pt', cur=0, anim=false;
+const TOTAL = PAGES.length + 3; // cover + how-to + story + glossary
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const book=document.getElementById('book'), pageEl=document.getElementById('pg'),
+      ind=document.getElementById('ind'), prevB=document.getElementById('prev'),
+      nextB=document.getElementById('next'), sheet=document.getElementById('sheet'),
+      sw=document.getElementById('sw'), sd=document.getElementById('sd');
+
+function X(seg,lang){ return seg.c ? C[seg.c][lang] : seg.x[LK[lang]]; }
+function esc(s){ return s.replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function el(tag,cls,txt){ const n=document.createElement(tag); if(cls)n.className=cls; if(txt!=null)n.textContent=txt; return n; }
+
+// wrap target-language text into tappable word spans inside container
+function words(container, text){
+  let last=0;
+  for(const m of text.matchAll(WORD)){
+    if(m.index>last) container.appendChild(document.createTextNode(text.slice(last,m.index)));
+    const sp=el('span','w',m[0]); sp.tabIndex=0; sp.setAttribute('role','button');
+    container.appendChild(sp); last=m.index+m[0].length;
+  }
+  container.appendChild(document.createTextNode(text.slice(last)));
+}
+
+function targetSpan(seg){
+  const holder=el('span');
+  holder.dataset.src = X(seg,SRC).trim();
+  words(holder, X(seg,TGT));
+  if(seg.g) holder.appendChild(document.createTextNode(' — '+X(seg,SRC).trim()));
+  return holder;
+}
+
+/* ---------- page builders ---------- */
+function buildCover(root){
+  root.className='page cover';
+  const fr=el('div','frame');
+  fr.appendChild(el('div','eyebrow', UI[SRC].eyebrow.replace('%L', LNAMES[SRC][TGT])));
+  const h1=document.createElement('h1');
+  const tSeg={f:1,x:{e:TITLE.en,p:TITLE.pt,f:TITLE.fr,i:TITLE.it,d:TITLE.de,s:TITLE.es}};
+  h1.appendChild(targetSpan(tSeg));
+  fr.appendChild(h1);
+  fr.appendChild(el('div','rule','✦ ✦ ✦'));
+  fr.appendChild(el('p','sub', UI[SRC].sub.replace('%L', LNAMES[SRC][TGT])));
+  const ls=el('div','lsel');
+  [['sel-src',UI[SRC].readIn,SRC],['sel-tgt',UI[SRC].learn,TGT]].forEach(([id,lab,val])=>{
+    const row=el('div','lrow'); const l=el('label',null,lab); l.htmlFor=id;
+    const sel=document.createElement('select'); sel.id=id;
+    LANGS.forEach(L=>{ const o=document.createElement('option'); o.value=L; o.textContent=LNAME_SELF[L]; if(L===val)o.selected=true; sel.appendChild(o); });
+    row.appendChild(l); row.appendChild(sel); ls.appendChild(row);
+  });
+  fr.appendChild(ls);
+  fr.insertAdjacentHTML('beforeend',
+   '<svg class="pig" viewBox="0 0 200 145" aria-hidden="true"><ellipse cx="108" cy="80" rx="60" ry="42"/><circle cx="52" cy="70" r="30"/><ellipse cx="32" cy="74" rx="10" ry="8"/><path d="M29 72 v4 M36 72 v4"/><path d="M40 46 L33 26 L55 38"/><path d="M61 42 L64 21 L78 37"/><circle cx="52" cy="61" r="2.6" fill="#2b2418" stroke="none"/><path d="M82 119 v16 M104 122 v15 M128 121 v16 M150 112 v16"/><path d="M167 72 q16 -8 11 4 q-5 11 9 7"/></svg>');
+  fr.appendChild(el('p','hint', UI[SRC].hint));
+  root.appendChild(fr);
+}
+
+function buildHowto(root){
+  root.className='page story';
+  root.appendChild(el('div','plabel', UI[SRC].howtoLabel));
+  root.appendChild(el('h2',null, UI[SRC].howtoTitle));
+  root.appendChild(el('p',null, UI[SRC].howtoP.replaceAll('%L', LNAMES[SRC][TGT])));
+  const ul=document.createElement('ul');
+  UI[SRC].tips.forEach(t=>{
+    const li=document.createElement('li');
+    if(t.includes('%W')){
+      const [a,b]=t.split('%W');
+      li.appendChild(document.createTextNode(a));
+      li.appendChild(targetSpan({f:1,c:'PIGS'}));
+      li.appendChild(document.createTextNode(b));
+    } else li.textContent=t;
+    ul.appendChild(li);
+  });
+  root.appendChild(ul);
+  root.appendChild(el('p',null, UI[SRC].happy));
+}
+
+function buildStory(root, pi){
+  const page=PAGES[pi];
+  root.className='page story';
+  root.appendChild(el('div','plabel', PAGEWORD[TGT]+' '+(pi+1)));
+  const intros=[];
+  page.ps.forEach(para=>{
+    const p=document.createElement('p');
+    para.forEach(seg=>{
+      if(seg.m){ // templated opening sentence
+        intros.push('PIGS');
+        const tpl=UI[SRC].meta1.replace('%L', LNAMES[SRC][TGT]);
+        const [a,b]=tpl.split('%W');
+        p.appendChild(document.createTextNode(a));
+        p.appendChild(targetSpan({f:1,c:'PIGS'}));
+        p.appendChild(document.createTextNode(b));
+        return;
+      }
+      if(seg.n) intros.push(...seg.n);
+      if(seg.f===0){ p.appendChild(document.createTextNode(X(seg,SRC))); return; }
+      const t=targetSpan(seg);
+      if(seg.b){ const bb=document.createElement('b'); bb.appendChild(t); p.appendChild(bb); }
+      else p.appendChild(t);
+    });
+    root.appendChild(p);
+  });
+  if(page.tr){ // final page: full translation instead of footnotes
+    const btn=el('button','trbtn', UI[SRC].showTr);
+    const tr=el('p','tr'); tr.hidden=true; tr.style.whiteSpace='pre-line';
+    tr.textContent = page.ps.map(para=>para.map(s=>X(s,SRC)).join('')).join('\n\n');
+    root.appendChild(btn); root.appendChild(tr);
+  } else if(intros.length){
+    const fn=el('div','fnote');
+    fn.innerHTML='<span class="fl">'+esc(UI[SRC].fnote)+'</span>'+
+      intros.map(c=>'<b>'+esc(C[c][TGT])+'</b> — '+esc(C[c][SRC])).join(' · ');
+    root.appendChild(fn);
+  }
+}
+
+function buildGloss(root){
+  root.className='page gloss';
+  root.appendChild(el('div','plabel', GLOSSTITLE[TGT]));
+  root.appendChild(el('h2',null, GLOSSTITLE[TGT]));
+  const seen=new Map();
+  PAGES.forEach((page,pi)=>{
+    page.ps.flat().forEach(seg=>{
+      if(seg.m && !seen.has('PIGS')) seen.set('PIGS', pi+1);
+      (seg.n||[]).forEach(c=>{ if(!seen.has(c)) seen.set(c, pi+1); });
+    });
+  });
+  const cols=el('div','cols');
+  [...seen.entries()]
+    .sort((a,b)=>C[a[0]][TGT].localeCompare(C[b[0]][TGT], TGT))
+    .forEach(([c,pg])=>{
+      const p=document.createElement('p');
+      p.innerHTML='<b>'+esc(C[c][TGT])+'</b> — '+esc(C[c][SRC])+' <span class="pref">p. '+pg+'</span>';
+      cols.appendChild(p);
+    });
+  root.appendChild(cols);
+}
+
+/* ---------- fill / flip / nav ---------- */
+function fill(root, idx){
+  root.innerHTML=''; root.className='page';
+  if(idx===0) buildCover(root);
+  else if(idx===1) buildHowto(root);
+  else if(idx===TOTAL-1) buildGloss(root);
+  else buildStory(root, idx-2);
+  root.scrollTop=0;
+}
+function update(){
+  ind.textContent=(cur+1)+' / '+TOTAL;
+  prevB.disabled=cur===0; nextB.disabled=cur===TOTAL-1;
+}
+function go(n){
+  if(anim || n<0 || n>=TOTAL || n===cur) return;
+  hideSheet();
+  if(RM){ fill(pageEl,n); cur=n; update(); return; }
+  anim=true;
+  const fwd=n>cur, oldCls=pageEl.className, oldHTML=pageEl.innerHTML;
+  fill(pageEl,n);
+  const leaf=el('div','leaf'), f=document.createElement('div'), b=document.createElement('div');
+  if(fwd){ f.className=oldCls+' face front'; f.innerHTML=oldHTML;
+           b.className=pageEl.className+' face back'; b.innerHTML=pageEl.innerHTML;
+           leaf.style.transform='rotateY(0deg)'; }
+  else   { f.className=pageEl.className+' face front'; f.innerHTML=pageEl.innerHTML;
+           b.className=oldCls+' face back'; b.innerHTML=oldHTML;
+           leaf.style.transform='rotateY(-180deg)'; }
+  leaf.appendChild(f); leaf.appendChild(b); book.appendChild(leaf);
+  leaf.getBoundingClientRect();
+  leaf.style.transform = fwd?'rotateY(-180deg)':'rotateY(0deg)';
+  leaf.addEventListener('transitionend',()=>{ leaf.remove(); anim=false; },{once:true});
+  setTimeout(()=>{ if(leaf.isConnected){ leaf.remove(); anim=false; } },900);
+  cur=n; update();
+}
+
+/* ---------- popup ---------- */
+function showDef(w){
+  const tok=w.textContent, cid=TOKENS[TGT][tok.toLowerCase()];
+  sw.textContent=tok;
+  if(cid){ sd.textContent=C[cid][SRC]; }
+  else{
+    const src=(w.closest('[data-src]')||{}).dataset ? w.closest('[data-src]').dataset.src : '';
+    sd.innerHTML='<span class="fb">'+esc(UI[SRC].inSent)+'</span>'+esc(src);
+  }
+  sheet.classList.add('open');
+  w.classList.add('hit'); setTimeout(()=>w.classList.remove('hit'),700);
+}
+function hideSheet(){ sheet.classList.remove('open'); }
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const tb=e.target.closest('.trbtn');
+  if(tb){ const t=tb.nextElementSibling; t.hidden=!t.hidden; return; }
+  const w=e.target.closest('.w');
+  if(w){ showDef(w); return; }
+  if(!e.target.closest('#sheet') && !e.target.closest('select')) hideSheet();
+});
+document.getElementById('sx').addEventListener('click',hideSheet);
+document.addEventListener('change',e=>{
+  if(e.target.id==='sel-src'){ const old=SRC; SRC=e.target.value; if(SRC===TGT) TGT=old; fill(pageEl,cur); update(); }
+  else if(e.target.id==='sel-tgt'){ const old=TGT; TGT=e.target.value; if(TGT===SRC) SRC=old; fill(pageEl,cur); update(); }
+});
+prevB.addEventListener('click',()=>go(cur-1));
+nextB.addEventListener('click',()=>go(cur+1));
+addEventListener('keydown',e=>{
+  if(e.target.classList && e.target.classList.contains('w') && (e.key==='Enter'||e.key===' ')){
+    e.preventDefault(); showDef(e.target); return;
+  }
+  if(e.target.tagName==='SELECT') return;
+  if(e.key==='ArrowRight') go(cur+1);
+  else if(e.key==='ArrowLeft') go(cur-1);
+  else if(e.key==='Escape') hideSheet();
+});
+let tx=0,ty=0;
+book.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+book.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)>60 && Math.abs(dx)>1.6*Math.abs(dy)) go(cur+(dx<0?1:-1));
+},{passive:true});
+
+fill(pageEl,0); update();
+</script>
+</body>
+</html>
