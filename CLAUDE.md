@@ -26,4 +26,4 @@ A zero-dependency generator for progressive bilingual storybooks ("diglot weave"
 
 ## Translation quality
 
-Machine-authored translations (currently FR/IT/DE in the example book) are drafts. Flag them as needing native-speaker review in any user-facing summary; do not present them as verified learner-ready content.
+Machine-authored translations (currently FR/IT/DE/ES in the example book) are drafts. Flag them as needing native-speaker review in any user-facing summary; do not present them as verified learner-ready content.
