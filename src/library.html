@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A Little Library</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100dvh;
+    background:#39342b radial-gradient(120% 90% at 50% 12%, #4a4335 0%, #39342b 55%, #2d2921 100%);
+    color:#e6ddc6; font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-text-size-adjust:100%; padding:36px 16px 48px;
+  }
+  #wrap{max-width:640px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:10px}
+  .eyebrow{font-size:.64rem; letter-spacing:.24em; text-transform:uppercase; color:#c9a227; text-align:center}
+  h1{margin:2px 0 0; font-size:clamp(1.6rem,6vw,2.3rem); font-weight:800; text-align:center; color:#f7f0dd;
+     font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Charter,Georgia,serif}
+  .rule{color:#c9a227; letter-spacing:.45em; font-size:.9rem; margin:4px 0 0}
+  .sub{font-size:.92rem; color:#cfc4a9; margin:0; text-align:center; max-width:46ch}
+
+  .lsel{display:flex; flex-direction:column; gap:8px; font-size:.8rem; color:#cfc4a9; margin:16px 0 4px}
+  .lrow{display:flex; align-items:center; gap:8px; justify-content:center}
+  .lrow label{min-width:11ch; text-align:right}
+  select{font:inherit; padding:6px 10px; border:1px solid #b5a67f; border-radius:8px;
+         background:#fbf6e7; color:#2b2418; cursor:pointer}
+  select:focus-visible{outline:2px solid #c9a227; outline-offset:1px}
+
+  #shelf{display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px; width:100%; margin-top:20px}
+  .bookcard{
+    display:flex; text-decoration:none; border-radius:6px; background:#f7f0dd; color:#2b2418; padding:14px;
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Charter,Georgia,serif;
+    box-shadow:inset 12px 0 16px -13px rgba(60,40,10,.4), inset 0 0 0 1px #efe5c9,
+               0 14px 30px rgba(0,0,0,.42), 0 3px 8px rgba(0,0,0,.3);
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .bookcard:hover,.bookcard:focus-visible{
+    transform:translateY(-4px);
+    box-shadow:inset 12px 0 16px -13px rgba(60,40,10,.4), inset 0 0 0 1px #efe5c9,
+               0 20px 38px rgba(0,0,0,.5), 0 5px 12px rgba(0,0,0,.32);
+  }
+  .bookcard:focus-visible{outline:2px solid #c9a227; outline-offset:3px}
+  .bframe{flex:1; border:2.5px solid #2b2418; outline:1.2px solid #2b2418; outline-offset:4px;
+          display:flex; flex-direction:column; align-items:center; text-align:center;
+          gap:10px; padding:22px 14px 18px}
+  .bframe svg{width:86px; height:auto; stroke:#2b2418; fill:none; stroke-width:6;
+              stroke-linecap:round; stroke-linejoin:round}
+  .btitle{font-size:1.18rem; line-height:1.25; font-weight:800}
+  .bsrc{font-family:system-ui; font-size:.74rem; color:#5a4f3b}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div class="eyebrow" id="eyeb"></div>
+  <h1 id="htitle"></h1>
+  <div class="rule">✦ ✦ ✦</div>
+  <p class="sub" id="hsub"></p>
+  <div class="lsel">
+    <div class="lrow"><label for="sel-src" id="lab-src"></label><select id="sel-src"></select></div>
+    <div class="lrow"><label for="sel-tgt" id="lab-tgt"></label><select id="sel-tgt"></select></div>
+  </div>
+  <main id="shelf"></main>
+</div>
+<script>
+/*I18N*/
+/* injected by build.js: [{file, title:{en,pt,fr,it,de,es}, art:'<svg…>'}] */
+const BOOKS = "/*BOOKS*/";
+
+let SRC='en', TGT='pt';
+try{
+  const q=new URLSearchParams(location.search);
+  if(LANGS.includes(q.get('src'))) SRC=q.get('src');
+  if(LANGS.includes(q.get('tgt')) && q.get('tgt')!==SRC) TGT=q.get('tgt');
+  if(TGT===SRC) TGT = SRC==='pt' ? 'en' : 'pt';
+}catch(e){}
+
+const $id=i=>document.getElementById(i);
+function fillSel(sel,val){
+  sel.innerHTML='';
+  LANGS.forEach(L=>{ const o=document.createElement('option'); o.value=L; o.textContent=LNAME_SELF[L]; sel.appendChild(o); });
+  sel.value=val;
+}
+function render(){
+  document.documentElement.lang=SRC;
+  document.title=UI[SRC].libTitle;
+  $id('eyeb').textContent=UI[SRC].libEyebrow.replace('%L', LNAMES[SRC][TGT]);
+  $id('htitle').textContent=UI[SRC].libTitle;
+  $id('hsub').textContent=UI[SRC].libSub.replace('%L', LNAMES[SRC][TGT]);
+  $id('lab-src').textContent=UI[SRC].readIn;
+  $id('lab-tgt').textContent=UI[SRC].learn;
+  fillSel($id('sel-src'),SRC); fillSel($id('sel-tgt'),TGT);
+  const shelf=$id('shelf'); shelf.innerHTML='';
+  BOOKS.forEach(b=>{
+    const a=document.createElement('a');
+    a.className='bookcard';
+    a.href='dist/'+b.file+'.html?src='+SRC+'&tgt='+TGT;
+    const fr=document.createElement('div'); fr.className='bframe';
+    fr.innerHTML=b.art;                                   // build-time trusted SVG
+    const t=document.createElement('div'); t.className='btitle'; t.textContent=b.title[TGT];
+    fr.appendChild(t);
+    if(b.title[SRC]!==b.title[TGT]){
+      const s=document.createElement('div'); s.className='bsrc'; s.textContent=b.title[SRC];
+      fr.appendChild(s);
+    }
+    a.appendChild(fr); shelf.appendChild(a);
+  });
+}
+document.addEventListener('change',e=>{
+  if(e.target.id==='sel-src'){ const old=SRC; SRC=e.target.value; if(SRC===TGT) TGT=old; render(); }
+  else if(e.target.id==='sel-tgt'){ const old=TGT; TGT=e.target.value; if(TGT===SRC) SRC=old; render(); }
+});
+render();
+</script>
+</body>
+</html>

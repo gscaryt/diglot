@@ -1,7 +1,17 @@
 /*ENGINE*/
 const LK = {en:'e',pt:'p',fr:'f',it:'i',de:'d',es:'s'};
+// book-declared demo concept for %W templates (books define DEMO; 'PIGS' kept as legacy default)
+const DEMO_C = (typeof DEMO === 'undefined') ? 'PIGS' : DEMO;
 const WORD = /[\p{L}\p{M}]+(?:-[\p{L}\p{M}]+)*/gu;
 let SRC='en', TGT='pt', cur=0, anim=false;
+// the library index links here with ?src=&tgt=; honor them (still no storage, spec B6)
+let FROM_LIB=false;
+try{
+  const q=new URLSearchParams(location.search);
+  if(LANGS.includes(q.get('src'))){ SRC=q.get('src'); FROM_LIB=true; }
+  if(LANGS.includes(q.get('tgt')) && q.get('tgt')!==SRC){ TGT=q.get('tgt'); FROM_LIB=true; }
+  if(TGT===SRC) TGT = SRC==='pt' ? 'en' : 'pt';
+}catch(e){}
 const TOTAL = PAGES.length + 3; // cover + how-to + story + glossary
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -52,10 +62,16 @@ function buildCover(root){
     row.appendChild(l); row.appendChild(sel); ls.appendChild(row);
   });
   fr.appendChild(ls);
-  fr.insertAdjacentHTML('beforeend',
-   '<svg class="pig" viewBox="0 0 200 145" aria-hidden="true"><ellipse cx="108" cy="80" rx="60" ry="42"/><circle cx="52" cy="70" r="30"/><ellipse cx="32" cy="74" rx="10" ry="8"/><path d="M29 72 v4 M36 72 v4"/><path d="M40 46 L33 26 L55 38"/><path d="M61 42 L64 21 L78 37"/><circle cx="52" cy="61" r="2.6" fill="#2b2418" stroke="none"/><path d="M82 119 v16 M104 122 v15 M128 121 v16 M150 112 v16"/><path d="M167 72 q16 -8 11 4 q-5 11 9 7"/></svg>');
+  fr.insertAdjacentHTML('beforeend', (typeof ART === 'undefined')
+   ? '<svg class="pig" viewBox="0 0 200 145" aria-hidden="true"><ellipse cx="108" cy="80" rx="60" ry="42"/><circle cx="52" cy="70" r="30"/><ellipse cx="32" cy="74" rx="10" ry="8"/><path d="M29 72 v4 M36 72 v4"/><path d="M40 46 L33 26 L55 38"/><path d="M61 42 L64 21 L78 37"/><circle cx="52" cy="61" r="2.6" fill="#2b2418" stroke="none"/><path d="M82 119 v16 M104 122 v15 M128 121 v16 M150 112 v16"/><path d="M167 72 q16 -8 11 4 q-5 11 9 7"/></svg>'
+   : ART);
   fr.appendChild(el('p','hint', UI[SRC].hint));
   root.appendChild(fr);
+  if(FROM_LIB){ // only when opened from the library, so a standalone copy stays self-contained
+    const a=el('a','homeLink','‹ '+UI[SRC].lib);
+    a.href='../index.html?src='+SRC+'&tgt='+TGT;
+    root.appendChild(a);
+  }
 }
 
 function buildHowto(root){
@@ -69,7 +85,7 @@ function buildHowto(root){
     if(t.includes('%W')){
       const [a,b]=t.split('%W');
       li.appendChild(document.createTextNode(a));
-      li.appendChild(targetSpan({f:1,c:'PIGS'}));
+      li.appendChild(targetSpan({f:1,c:DEMO_C}));
       li.appendChild(document.createTextNode(b));
     } else li.textContent=t;
     ul.appendChild(li);
@@ -87,11 +103,11 @@ function buildStory(root, pi){
     const p=document.createElement('p');
     para.forEach(seg=>{
       if(seg.m){ // templated opening sentence
-        intros.push('PIGS');
+        intros.push(DEMO_C);
         const tpl=UI[SRC].meta1.replace('%L', LNAMES[SRC][TGT]);
         const [a,b]=tpl.split('%W');
         p.appendChild(document.createTextNode(a));
-        p.appendChild(targetSpan({f:1,c:'PIGS'}));
+        p.appendChild(targetSpan({f:1,c:DEMO_C}));
         p.appendChild(document.createTextNode(b));
         return;
       }
@@ -123,7 +139,7 @@ function buildGloss(root){
   const seen=new Map();
   PAGES.forEach((page,pi)=>{
     page.ps.flat().forEach(seg=>{
-      if(seg.m && !seen.has('PIGS')) seen.set('PIGS', pi+1);
+      if(seg.m && !seen.has(DEMO_C)) seen.set(DEMO_C, pi+1);
       (seg.n||[]).forEach(c=>{ if(!seen.has(c)) seen.set(c, pi+1); });
     });
   });
@@ -140,6 +156,7 @@ function buildGloss(root){
 
 /* ---------- fill / flip / nav ---------- */
 function fill(root, idx){
+  document.title = TITLE[TGT] + ' — ' + TITLE[SRC];
   root.innerHTML=''; root.className='page';
   if(idx===0) buildCover(root);
   else if(idx===1) buildHowto(root);

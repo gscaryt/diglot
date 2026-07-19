@@ -2,12 +2,15 @@
 /* ================= LANGUAGES & UI STRINGS ================= */
 const LANGS = ['en','pt','fr','it','de','es'];
 const LNAME_SELF = {en:'English', pt:'Português (BR)', fr:'Français', it:'Italiano', de:'Deutsch', es:'Español'};
-// name of the TARGET language written in the SOURCE language
+// name of the TARGET language written in the SOURCE language.
+// fr/it rows carry the article (l'anglais, lo spagnolo) because those grammars
+// require it after "apprendre/imparare"; fr/it UI strings are phrased so every
+// %L slot composes correctly with the articled form. Other rows stay bare.
 const LNAMES = {
   en:{en:'English',pt:'Portuguese',fr:'French',it:'Italian',de:'German',es:'Spanish'},
   pt:{en:'inglês',pt:'português',fr:'francês',it:'italiano',de:'alemão',es:'espanhol'},
-  fr:{en:'anglais',pt:'portugais',fr:'français',it:'italien',de:'allemand',es:'espagnol'},
-  it:{en:'inglese',pt:'portoghese',fr:'francese',it:'italiano',de:'tedesco',es:'spagnolo'},
+  fr:{en:'l’anglais',pt:'le portugais',fr:'le français',it:'l’italien',de:'l’allemand',es:'l’espagnol'},
+  it:{en:'l’inglese',pt:'il portoghese',fr:'il francese',it:'l’italiano',de:'il tedesco',es:'lo spagnolo'},
   de:{en:'Englisch',pt:'Portugiesisch',fr:'Französisch',it:'Italienisch',de:'Deutsch',es:'Spanisch'},
   es:{en:'inglés',pt:'portugués',fr:'francés',it:'italiano',de:'alemán',es:'español'}
 };
@@ -25,7 +28,9 @@ const UI = {
             'Swipe or use the arrows to turn the pages. The full glossary is on the last page.'],
       happy:'Happy reading!',
       meta1:'Once upon a time, there were three little pigs. In %L, little pigs are %W — and since this is really their story, that is what we will call them.',
-      fnote:'New words', inSent:'in this sentence:', showTr:'Show the translation'},
+      fnote:'New words', inSent:'in this sentence:', showTr:'Show the translation',
+      libEyebrow:'Little books for learning %L', libTitle:'A Little Library',
+      libSub:'choose a story — it will slowly turn into %L', lib:'library'},
   pt:{eyebrow:'Um livrinho para aprender %L', sub:'uma história que aos poucos vira %L',
       readIn:'Eu leio em', learn:'Quero aprender', hint:'vire a página →',
       howtoLabel:'Como ler este livro', howtoTitle:'Antes de começar',
@@ -36,29 +41,35 @@ const UI = {
             'Deslize ou use as setas para virar as páginas. O glossário completo está na última página.'],
       happy:'Boa leitura!',
       meta1:'Era uma vez três porquinhos. Em %L, porquinhos são %W — e como esta história é deles, é assim que vamos chamá-los.',
-      fnote:'Palavras novas', inSent:'nesta frase:', showTr:'Mostrar tradução'},
-  fr:{eyebrow:'Un petit livre pour apprendre %L', sub:'une histoire qui devient peu à peu %L',
+      fnote:'Palavras novas', inSent:'nesta frase:', showTr:'Mostrar tradução',
+      libEyebrow:'Livrinhos para aprender %L', libTitle:'Uma Pequena Biblioteca',
+      libSub:'escolha uma história — aos poucos ela vira %L', lib:'biblioteca'},
+  fr:{eyebrow:'Un petit livre pour apprendre %L', sub:'une histoire qui glisse peu à peu vers %L',
       readIn:'Je lis en', learn:'J\u2019apprends', hint:'tournez la page →',
       howtoLabel:'Comment lire ce livre', howtoTitle:'Avant de commencer',
-      howtoP:'Ce petit livre vous joue un tour — un tour amical. Il commence dans votre langue, mais le %L s\u2019y glisse au fil de la lecture. Chaque mot nouveau apparaît d\u2019abord là où le contexte rend son sens évident, puis revient encore et encore jusqu\u2019à devenir vôtre. Page après page votre langue s\u2019efface, et à la dernière page vous lisez en %L.',
+      howtoP:'Ce petit livre vous joue un tour — un tour amical. Il commence dans votre langue, mais %L s\u2019y glisse au fil de la lecture. Chaque mot nouveau apparaît d\u2019abord là où le contexte rend son sens évident, puis revient encore et encore jusqu\u2019à devenir vôtre. Page après page votre langue s\u2019efface, et à la dernière page vous lisez %L.',
       tips:['La première fois qu\u2019un mot nouveau apparaît, il figure dans la petite note en bas de la page.',
             'Ensuite, touchez n\u2019importe quel mot que vous ne reconnaissez pas — son sens apparaît. Rien n\u2019est surligné ; les mots se cachent à la vue de tous. Essayez maintenant : %W.',
             'Ne vous arrêtez pas pour mémoriser. Si vous oubliez un mot, l\u2019histoire vous le rappellera — et un simple toucher vous donne la réponse.',
             'Balayez ou utilisez les flèches pour tourner les pages. Le glossaire complet est à la dernière page.'],
       happy:'Bonne lecture !',
-      meta1:'Il était une fois trois petits cochons. En %L, les petits cochons s\u2019appellent %W — et comme c\u2019est leur histoire, c\u2019est ainsi que nous les appellerons.',
-      fnote:'Mots nouveaux', inSent:'dans cette phrase :', showTr:'Afficher la traduction'},
-  it:{eyebrow:'Un libretto per imparare %L', sub:'una storia che a poco a poco diventa %L',
+      meta1:'Il était une fois trois petits cochons. Pour qui apprend %L, les petits cochons s\u2019appellent %W — et comme c\u2019est leur histoire, c\u2019est ainsi que nous les appellerons.',
+      fnote:'Mots nouveaux', inSent:'dans cette phrase :', showTr:'Afficher la traduction',
+      libEyebrow:'Des petits livres pour apprendre %L', libTitle:'Une petite bibliothèque',
+      libSub:'choisissez une histoire — elle glissera peu à peu vers %L', lib:'bibliothèque'},
+  it:{eyebrow:'Un libretto per imparare %L', sub:'una storia che scivola a poco a poco verso %L',
       readIn:'Leggo in', learn:'Sto imparando', hint:'gira la pagina →',
       howtoLabel:'Come leggere questo libro', howtoTitle:'Prima di cominciare',
-      howtoP:'Questo libretto ti fa uno scherzo — uno scherzo gentile. Comincia nella tua lingua, ma il %L si infila mentre leggi. Ogni parola nuova appare prima dove il contesto ne rende ovvio il significato, poi torna ancora e ancora finché diventa tua. Pagina dopo pagina la tua lingua svanisce, e all\u2019ultima pagina stai leggendo in %L.',
+      howtoP:'Questo libretto ti fa uno scherzo — uno scherzo gentile. Comincia nella tua lingua, ma %L si infila mentre leggi. Ogni parola nuova appare prima dove il contesto ne rende ovvio il significato, poi torna ancora e ancora finché diventa tua. Pagina dopo pagina la tua lingua svanisce, e all\u2019ultima pagina stai leggendo %L.',
       tips:['La prima volta che una parola nuova appare, la trovi nella piccola nota in fondo alla pagina.',
             'Poi, tocca qualsiasi parola che non riconosci — il significato compare. Niente è evidenziato; le parole si nascondono in piena vista. Prova adesso: %W.',
             'Non fermarti a memorizzare. Se dimentichi una parola, la storia te la ricorderà — e un tocco ti dà la risposta.',
             'Scorri o usa le frecce per girare le pagine. Il glossario completo è all\u2019ultima pagina.'],
       happy:'Buona lettura!',
-      meta1:'C\u2019erano una volta tre porcellini. In %L, i porcellini si chiamano %W — e siccome questa è la loro storia, li chiameremo così.',
-      fnote:'Parole nuove', inSent:'in questa frase:', showTr:'Mostra la traduzione'},
+      meta1:'C\u2019erano una volta tre porcellini. Per chi impara %L, i porcellini si chiamano %W — e siccome questa è la loro storia, li chiameremo così.',
+      fnote:'Parole nuove', inSent:'in questa frase:', showTr:'Mostra la traduzione',
+      libEyebrow:'Piccoli libri per imparare %L', libTitle:'Una piccola biblioteca',
+      libSub:'scegli una storia — scivolerà a poco a poco verso %L', lib:'biblioteca'},
   de:{eyebrow:'Ein Büchlein zum %L-Lernen', sub:'eine Geschichte, die langsam %L wird',
       readIn:'Ich lese auf', learn:'Ich lerne', hint:'blättere um →',
       howtoLabel:'Wie man dieses Buch liest', howtoTitle:'Bevor du anfängst',
@@ -69,7 +80,9 @@ const UI = {
             'Wische oder benutze die Pfeile zum Umblättern. Das vollständige Glossar steht auf der letzten Seite.'],
       happy:'Viel Spaß beim Lesen!',
       meta1:'Es waren einmal drei kleine Schweinchen. Auf %L heißen kleine Schweinchen %W — und weil dies ihre Geschichte ist, nennen wir sie ab jetzt so.',
-      fnote:'Neue Wörter', inSent:'in diesem Satz:', showTr:'Übersetzung anzeigen'},
+      fnote:'Neue Wörter', inSent:'in diesem Satz:', showTr:'Übersetzung anzeigen',
+      libEyebrow:'Kleine Bücher zum %L-Lernen', libTitle:'Eine kleine Bibliothek',
+      libSub:'wähle eine Geschichte — sie wird langsam %L', lib:'Bibliothek'},
   es:{eyebrow:'Un librito para aprender %L', sub:'una historia que poco a poco se convierte en %L',
       readIn:'Yo leo en', learn:'Quiero aprender', hint:'pasa la página →',
       howtoLabel:'Cómo leer este libro', howtoTitle:'Antes de empezar',
@@ -80,6 +93,8 @@ const UI = {
             'Desliza o usa las flechas para pasar las páginas. El glosario completo está en la última página.'],
       happy:'¡Feliz lectura!',
       meta1:'Había una vez tres cerditos. En %L, los cerditos son %W — y como esta es realmente su historia, así los llamaremos.',
-      fnote:'Palabras nuevas', inSent:'en esta frase:', showTr:'Mostrar la traducción'}
+      fnote:'Palabras nuevas', inSent:'en esta frase:', showTr:'Mostrar la traducción',
+      libEyebrow:'Libritos para aprender %L', libTitle:'Una pequeña biblioteca',
+      libSub:'elige una historia — poco a poco se convertirá en %L', lib:'biblioteca'}
 };
 

@@ -4,7 +4,7 @@ Instructions for working in this repository.
 
 ## What this is
 
-A zero-dependency generator for progressive bilingual storybooks ("diglot weave"). `build.js` concatenates `src/head.html + shared/i18n.js + books/<name>.js + src/engine.js + src/tail.html` into one self-contained HTML file in `dist/`. The authoritative ruleset is `implementation.spec.md`; when in doubt, that document wins.
+A zero-dependency generator for progressive bilingual storybooks ("diglot weave"). `build.js` concatenates `src/head.html + shared/i18n.js + books/<name>.js + src/engine.js + src/tail.html` into one self-contained HTML file in `dist/`, and also generates the library page `index.html` at the repo root from `src/library.html` (i18n + per-book TITLE/ART injected). The authoritative ruleset is `implementation.spec.md`; when in doubt, that document wins.
 
 ## Invariants — do not break
 
@@ -19,7 +19,8 @@ A zero-dependency generator for progressive bilingual storybooks ("diglot weave"
 ## Workflow
 
 - After every change: `node build.js && node tools/validate.js`. Validation must exit 0. Treat new warnings as questions to resolve, not noise.
-- Story/content changes → `books/`. Engine/UI behavior → `src/engine.js`. Scaffolding copy or new language → `shared/i18n.js`. Never inline book content into the engine.
+- Story/content changes → `books/`. Engine/UI behavior → `src/engine.js`. Library page markup/behavior → `src/library.html`. Scaffolding copy or new language → `shared/i18n.js`. Never inline book content into the engine.
+- `%L` strings in `shared/i18n.js` must compose with the language names in that source language's `LNAMES` row — the fr/it rows carry articles (l'anglais, lo spagnolo) by design; see spec §2 "Articled language names".
 - When editing `books/*.js`, keep the segment-slot structure: languages may distribute words differently across the same S/T slot sequence (German verb placement differs from English) — that is by design, not a bug to normalize.
 - New book: follow spec §4 steps 1–8. Copy `books/three-little-pigs.js` as a template.
 - New language: follow the checklist in spec §0 (touches i18n, every book file, engine letter maps, validator letter maps).

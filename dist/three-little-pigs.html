@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Three Little Pigs — a progressive bilingual reader</title>
+<title>A progressive bilingual reader</title>
 <style>
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -58,6 +58,9 @@
   .rule{color:#c9a227; letter-spacing:.45em; font-size:.9rem}
   .sub{font-size:.92rem; color:#5a4f3b; max-width:36ch; margin:0}
   .hint{font-family:system-ui; font-size:.74rem; letter-spacing:.06em; color:#96865f; margin:2px 0 0}
+  .homeLink{position:absolute; top:26px; left:28px; font-family:system-ui; font-size:.7rem;
+            letter-spacing:.08em; color:#96865f; text-decoration:none}
+  .homeLink:hover,.homeLink:focus-visible{color:#6f6142; text-decoration:underline}
   svg.pig{width:104px; height:auto; stroke:#2b2418; fill:none; stroke-width:6; stroke-linecap:round; stroke-linejoin:round}
 
   /* language pair selector */
@@ -130,12 +133,15 @@
 /* ================= LANGUAGES & UI STRINGS ================= */
 const LANGS = ['en','pt','fr','it','de','es'];
 const LNAME_SELF = {en:'English', pt:'Português (BR)', fr:'Français', it:'Italiano', de:'Deutsch', es:'Español'};
-// name of the TARGET language written in the SOURCE language
+// name of the TARGET language written in the SOURCE language.
+// fr/it rows carry the article (l'anglais, lo spagnolo) because those grammars
+// require it after "apprendre/imparare"; fr/it UI strings are phrased so every
+// %L slot composes correctly with the articled form. Other rows stay bare.
 const LNAMES = {
   en:{en:'English',pt:'Portuguese',fr:'French',it:'Italian',de:'German',es:'Spanish'},
   pt:{en:'inglês',pt:'português',fr:'francês',it:'italiano',de:'alemão',es:'espanhol'},
-  fr:{en:'anglais',pt:'portugais',fr:'français',it:'italien',de:'allemand',es:'espagnol'},
-  it:{en:'inglese',pt:'portoghese',fr:'francese',it:'italiano',de:'tedesco',es:'spagnolo'},
+  fr:{en:'l’anglais',pt:'le portugais',fr:'le français',it:'l’italien',de:'l’allemand',es:'l’espagnol'},
+  it:{en:'l’inglese',pt:'il portoghese',fr:'il francese',it:'l’italiano',de:'il tedesco',es:'lo spagnolo'},
   de:{en:'Englisch',pt:'Portugiesisch',fr:'Französisch',it:'Italienisch',de:'Deutsch',es:'Spanisch'},
   es:{en:'inglés',pt:'portugués',fr:'francés',it:'italiano',de:'alemán',es:'español'}
 };
@@ -153,7 +159,9 @@ const UI = {
             'Swipe or use the arrows to turn the pages. The full glossary is on the last page.'],
       happy:'Happy reading!',
       meta1:'Once upon a time, there were three little pigs. In %L, little pigs are %W — and since this is really their story, that is what we will call them.',
-      fnote:'New words', inSent:'in this sentence:', showTr:'Show the translation'},
+      fnote:'New words', inSent:'in this sentence:', showTr:'Show the translation',
+      libEyebrow:'Little books for learning %L', libTitle:'A Little Library',
+      libSub:'choose a story — it will slowly turn into %L', lib:'library'},
   pt:{eyebrow:'Um livrinho para aprender %L', sub:'uma história que aos poucos vira %L',
       readIn:'Eu leio em', learn:'Quero aprender', hint:'vire a página →',
       howtoLabel:'Como ler este livro', howtoTitle:'Antes de começar',
@@ -164,29 +172,35 @@ const UI = {
             'Deslize ou use as setas para virar as páginas. O glossário completo está na última página.'],
       happy:'Boa leitura!',
       meta1:'Era uma vez três porquinhos. Em %L, porquinhos são %W — e como esta história é deles, é assim que vamos chamá-los.',
-      fnote:'Palavras novas', inSent:'nesta frase:', showTr:'Mostrar tradução'},
-  fr:{eyebrow:'Un petit livre pour apprendre %L', sub:'une histoire qui devient peu à peu %L',
+      fnote:'Palavras novas', inSent:'nesta frase:', showTr:'Mostrar tradução',
+      libEyebrow:'Livrinhos para aprender %L', libTitle:'Uma Pequena Biblioteca',
+      libSub:'escolha uma história — aos poucos ela vira %L', lib:'biblioteca'},
+  fr:{eyebrow:'Un petit livre pour apprendre %L', sub:'une histoire qui glisse peu à peu vers %L',
       readIn:'Je lis en', learn:'J\u2019apprends', hint:'tournez la page →',
       howtoLabel:'Comment lire ce livre', howtoTitle:'Avant de commencer',
-      howtoP:'Ce petit livre vous joue un tour — un tour amical. Il commence dans votre langue, mais le %L s\u2019y glisse au fil de la lecture. Chaque mot nouveau apparaît d\u2019abord là où le contexte rend son sens évident, puis revient encore et encore jusqu\u2019à devenir vôtre. Page après page votre langue s\u2019efface, et à la dernière page vous lisez en %L.',
+      howtoP:'Ce petit livre vous joue un tour — un tour amical. Il commence dans votre langue, mais %L s\u2019y glisse au fil de la lecture. Chaque mot nouveau apparaît d\u2019abord là où le contexte rend son sens évident, puis revient encore et encore jusqu\u2019à devenir vôtre. Page après page votre langue s\u2019efface, et à la dernière page vous lisez %L.',
       tips:['La première fois qu\u2019un mot nouveau apparaît, il figure dans la petite note en bas de la page.',
             'Ensuite, touchez n\u2019importe quel mot que vous ne reconnaissez pas — son sens apparaît. Rien n\u2019est surligné ; les mots se cachent à la vue de tous. Essayez maintenant : %W.',
             'Ne vous arrêtez pas pour mémoriser. Si vous oubliez un mot, l\u2019histoire vous le rappellera — et un simple toucher vous donne la réponse.',
             'Balayez ou utilisez les flèches pour tourner les pages. Le glossaire complet est à la dernière page.'],
       happy:'Bonne lecture !',
-      meta1:'Il était une fois trois petits cochons. En %L, les petits cochons s\u2019appellent %W — et comme c\u2019est leur histoire, c\u2019est ainsi que nous les appellerons.',
-      fnote:'Mots nouveaux', inSent:'dans cette phrase :', showTr:'Afficher la traduction'},
-  it:{eyebrow:'Un libretto per imparare %L', sub:'una storia che a poco a poco diventa %L',
+      meta1:'Il était une fois trois petits cochons. Pour qui apprend %L, les petits cochons s\u2019appellent %W — et comme c\u2019est leur histoire, c\u2019est ainsi que nous les appellerons.',
+      fnote:'Mots nouveaux', inSent:'dans cette phrase :', showTr:'Afficher la traduction',
+      libEyebrow:'Des petits livres pour apprendre %L', libTitle:'Une petite bibliothèque',
+      libSub:'choisissez une histoire — elle glissera peu à peu vers %L', lib:'bibliothèque'},
+  it:{eyebrow:'Un libretto per imparare %L', sub:'una storia che scivola a poco a poco verso %L',
       readIn:'Leggo in', learn:'Sto imparando', hint:'gira la pagina →',
       howtoLabel:'Come leggere questo libro', howtoTitle:'Prima di cominciare',
-      howtoP:'Questo libretto ti fa uno scherzo — uno scherzo gentile. Comincia nella tua lingua, ma il %L si infila mentre leggi. Ogni parola nuova appare prima dove il contesto ne rende ovvio il significato, poi torna ancora e ancora finché diventa tua. Pagina dopo pagina la tua lingua svanisce, e all\u2019ultima pagina stai leggendo in %L.',
+      howtoP:'Questo libretto ti fa uno scherzo — uno scherzo gentile. Comincia nella tua lingua, ma %L si infila mentre leggi. Ogni parola nuova appare prima dove il contesto ne rende ovvio il significato, poi torna ancora e ancora finché diventa tua. Pagina dopo pagina la tua lingua svanisce, e all\u2019ultima pagina stai leggendo %L.',
       tips:['La prima volta che una parola nuova appare, la trovi nella piccola nota in fondo alla pagina.',
             'Poi, tocca qualsiasi parola che non riconosci — il significato compare. Niente è evidenziato; le parole si nascondono in piena vista. Prova adesso: %W.',
             'Non fermarti a memorizzare. Se dimentichi una parola, la storia te la ricorderà — e un tocco ti dà la risposta.',
             'Scorri o usa le frecce per girare le pagine. Il glossario completo è all\u2019ultima pagina.'],
       happy:'Buona lettura!',
-      meta1:'C\u2019erano una volta tre porcellini. In %L, i porcellini si chiamano %W — e siccome questa è la loro storia, li chiameremo così.',
-      fnote:'Parole nuove', inSent:'in questa frase:', showTr:'Mostra la traduzione'},
+      meta1:'C\u2019erano una volta tre porcellini. Per chi impara %L, i porcellini si chiamano %W — e siccome questa è la loro storia, li chiameremo così.',
+      fnote:'Parole nuove', inSent:'in questa frase:', showTr:'Mostra la traduzione',
+      libEyebrow:'Piccoli libri per imparare %L', libTitle:'Una piccola biblioteca',
+      libSub:'scegli una storia — scivolerà a poco a poco verso %L', lib:'biblioteca'},
   de:{eyebrow:'Ein Büchlein zum %L-Lernen', sub:'eine Geschichte, die langsam %L wird',
       readIn:'Ich lese auf', learn:'Ich lerne', hint:'blättere um →',
       howtoLabel:'Wie man dieses Buch liest', howtoTitle:'Bevor du anfängst',
@@ -197,7 +211,9 @@ const UI = {
             'Wische oder benutze die Pfeile zum Umblättern. Das vollständige Glossar steht auf der letzten Seite.'],
       happy:'Viel Spaß beim Lesen!',
       meta1:'Es waren einmal drei kleine Schweinchen. Auf %L heißen kleine Schweinchen %W — und weil dies ihre Geschichte ist, nennen wir sie ab jetzt so.',
-      fnote:'Neue Wörter', inSent:'in diesem Satz:', showTr:'Übersetzung anzeigen'},
+      fnote:'Neue Wörter', inSent:'in diesem Satz:', showTr:'Übersetzung anzeigen',
+      libEyebrow:'Kleine Bücher zum %L-Lernen', libTitle:'Eine kleine Bibliothek',
+      libSub:'wähle eine Geschichte — sie wird langsam %L', lib:'Bibliothek'},
   es:{eyebrow:'Un librito para aprender %L', sub:'una historia que poco a poco se convierte en %L',
       readIn:'Yo leo en', learn:'Quiero aprender', hint:'pasa la página →',
       howtoLabel:'Cómo leer este libro', howtoTitle:'Antes de empezar',
@@ -208,11 +224,15 @@ const UI = {
             'Desliza o usa las flechas para pasar las páginas. El glosario completo está en la última página.'],
       happy:'¡Feliz lectura!',
       meta1:'Había una vez tres cerditos. En %L, los cerditos son %W — y como esta es realmente su historia, así los llamaremos.',
-      fnote:'Palabras nuevas', inSent:'en esta frase:', showTr:'Mostrar la traducción'}
+      fnote:'Palabras nuevas', inSent:'en esta frase:', showTr:'Mostrar la traducción',
+      libEyebrow:'Libritos para aprender %L', libTitle:'Una pequeña biblioteca',
+      libSub:'elige una historia — poco a poco se convertirá en %L', lib:'biblioteca'}
 };
 
 const TITLE = {en:'The Three Little Pigs', pt:'Os Três Porquinhos', fr:'Les Trois Petits Cochons',
                it:'I Tre Porcellini', de:'Die drei kleinen Schweinchen', es:'Los Tres Cerditos'};
+/* Concept used by the how-to page's "try it now" demo word */
+const DEMO = 'PIGS';
 /* ================= CONCEPTS (one entry per tracked form) ================= */
 const C = {
   PIG:{en:'little pig',pt:'porquinho',fr:'petit cochon',it:'porcellino',de:'Schweinchen',es:'cerdito'},
@@ -746,8 +766,18 @@ const PAGES = [
 ];
 /*ENGINE*/
 const LK = {en:'e',pt:'p',fr:'f',it:'i',de:'d',es:'s'};
+// book-declared demo concept for %W templates (books define DEMO; 'PIGS' kept as legacy default)
+const DEMO_C = (typeof DEMO === 'undefined') ? 'PIGS' : DEMO;
 const WORD = /[\p{L}\p{M}]+(?:-[\p{L}\p{M}]+)*/gu;
 let SRC='en', TGT='pt', cur=0, anim=false;
+// the library index links here with ?src=&tgt=; honor them (still no storage, spec B6)
+let FROM_LIB=false;
+try{
+  const q=new URLSearchParams(location.search);
+  if(LANGS.includes(q.get('src'))){ SRC=q.get('src'); FROM_LIB=true; }
+  if(LANGS.includes(q.get('tgt')) && q.get('tgt')!==SRC){ TGT=q.get('tgt'); FROM_LIB=true; }
+  if(TGT===SRC) TGT = SRC==='pt' ? 'en' : 'pt';
+}catch(e){}
 const TOTAL = PAGES.length + 3; // cover + how-to + story + glossary
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -798,10 +828,16 @@ function buildCover(root){
     row.appendChild(l); row.appendChild(sel); ls.appendChild(row);
   });
   fr.appendChild(ls);
-  fr.insertAdjacentHTML('beforeend',
-   '<svg class="pig" viewBox="0 0 200 145" aria-hidden="true"><ellipse cx="108" cy="80" rx="60" ry="42"/><circle cx="52" cy="70" r="30"/><ellipse cx="32" cy="74" rx="10" ry="8"/><path d="M29 72 v4 M36 72 v4"/><path d="M40 46 L33 26 L55 38"/><path d="M61 42 L64 21 L78 37"/><circle cx="52" cy="61" r="2.6" fill="#2b2418" stroke="none"/><path d="M82 119 v16 M104 122 v15 M128 121 v16 M150 112 v16"/><path d="M167 72 q16 -8 11 4 q-5 11 9 7"/></svg>');
+  fr.insertAdjacentHTML('beforeend', (typeof ART === 'undefined')
+   ? '<svg class="pig" viewBox="0 0 200 145" aria-hidden="true"><ellipse cx="108" cy="80" rx="60" ry="42"/><circle cx="52" cy="70" r="30"/><ellipse cx="32" cy="74" rx="10" ry="8"/><path d="M29 72 v4 M36 72 v4"/><path d="M40 46 L33 26 L55 38"/><path d="M61 42 L64 21 L78 37"/><circle cx="52" cy="61" r="2.6" fill="#2b2418" stroke="none"/><path d="M82 119 v16 M104 122 v15 M128 121 v16 M150 112 v16"/><path d="M167 72 q16 -8 11 4 q-5 11 9 7"/></svg>'
+   : ART);
   fr.appendChild(el('p','hint', UI[SRC].hint));
   root.appendChild(fr);
+  if(FROM_LIB){ // only when opened from the library, so a standalone copy stays self-contained
+    const a=el('a','homeLink','‹ '+UI[SRC].lib);
+    a.href='../index.html?src='+SRC+'&tgt='+TGT;
+    root.appendChild(a);
+  }
 }
 
 function buildHowto(root){
@@ -815,7 +851,7 @@ function buildHowto(root){
     if(t.includes('%W')){
       const [a,b]=t.split('%W');
       li.appendChild(document.createTextNode(a));
-      li.appendChild(targetSpan({f:1,c:'PIGS'}));
+      li.appendChild(targetSpan({f:1,c:DEMO_C}));
       li.appendChild(document.createTextNode(b));
     } else li.textContent=t;
     ul.appendChild(li);
@@ -833,11 +869,11 @@ function buildStory(root, pi){
     const p=document.createElement('p');
     para.forEach(seg=>{
       if(seg.m){ // templated opening sentence
-        intros.push('PIGS');
+        intros.push(DEMO_C);
         const tpl=UI[SRC].meta1.replace('%L', LNAMES[SRC][TGT]);
         const [a,b]=tpl.split('%W');
         p.appendChild(document.createTextNode(a));
-        p.appendChild(targetSpan({f:1,c:'PIGS'}));
+        p.appendChild(targetSpan({f:1,c:DEMO_C}));
         p.appendChild(document.createTextNode(b));
         return;
       }
@@ -869,7 +905,7 @@ function buildGloss(root){
   const seen=new Map();
   PAGES.forEach((page,pi)=>{
     page.ps.flat().forEach(seg=>{
-      if(seg.m && !seen.has('PIGS')) seen.set('PIGS', pi+1);
+      if(seg.m && !seen.has(DEMO_C)) seen.set(DEMO_C, pi+1);
       (seg.n||[]).forEach(c=>{ if(!seen.has(c)) seen.set(c, pi+1); });
     });
   });
@@ -886,6 +922,7 @@ function buildGloss(root){
 
 /* ---------- fill / flip / nav ---------- */
 function fill(root, idx){
+  document.title = TITLE[TGT] + ' — ' + TITLE[SRC];
   root.innerHTML=''; root.className='page';
   if(idx===0) buildCover(root);
   else if(idx===1) buildHowto(root);

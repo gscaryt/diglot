@@ -11,12 +11,17 @@ src/head.html    Page chrome: CSS, body skeleton, opening <script> tag. Shared b
 src/engine.js    Rendering engine (starts with /*ENGINE*/). Language-pair selection, page flip,
                  tap popups, footnotes, glossary and translation generation. Book-agnostic.
 src/tail.html    Closing tags.
+src/library.html Library index template: book cards + pair selector. build.js injects
+                 shared/i18n.js and per-book metadata (TITLE, ART) into it.
 shared/i18n.js   LANGS, language-name matrices, PAGEWORD/GLOSSTITLE, UI string table.
                  Edit only when adding a language or changing scaffolding copy.
 books/<name>.js  One file per book: TITLE, CONCEPTS (C), TOKENS, PAGES. All story content.
-build.js         node build.js [book] -> dist/<book>.html (plain concatenation, no deps).
+build.js         node build.js -> dist/<book>.html for every book + index.html (library).
+                 node build.js [book] -> that book only (index.html always refreshed).
+                 Plain concatenation and placeholder substitution, no deps.
 tools/validate.js node tools/validate.js [dist/<book>.html] -> runs §5 checks. Exit 1 on error.
 dist/            Build output. Single self-contained HTML file per book.
+index.html       Build output. Library page at the repo root (GitHub Pages entry point).
 ```
 
 Rules for changes:
@@ -85,15 +90,21 @@ The book is authored once, language-independently, as **segments**. The engine r
 
 Every segment carries all five texts even when flagged source-only, because any language can be either side of the pair, and the source text is also the popup fallback and the page-translation source. Source-language glue is written per language, so each language places verbs and articles naturally around the switched slots (German may put the verb in a different slot than English — that's expected and fine).
 
-**Templated segments.** Sentences that mention the mechanic itself ("In %L, little pigs are %W") are templates per source language, with `%L` = target-language name (localized name matrix) and `%W` = the tappable target word.
+**Templated segments.** Sentences that mention the mechanic itself ("In %L, little pigs are %W") are templates per source language, with `%L` = target-language name (localized name matrix) and `%W` = the tappable target word. Each book declares `const DEMO = '<CONCEPT_ID>'` — the concept the engine substitutes for `%W` (how-to page "try it now" word, and `{m:1}` meta segments where the book uses them). A book may also declare `const ART = '<svg …>'` to replace the default cover illustration.
 
 **Chrome strings.** Cover, how-to page, footnote label, popup fallback label, translation button, and page labels are localized: reader-facing scaffolding follows the *source* language; page numbers, glossary title, and the book title follow the *target* language (they're teaching material).
+
+**Articled language names.** The French and Italian rows of `LNAMES` carry the article ("l'anglais", "lo spagnolo") because those grammars require it after "apprendre/imparare"; every `%L` slot in the fr/it UI strings is phrased to compose with the articled form. Other rows stay bare. When adding a language, check each `%L` string against every possible target-language name, not just one.
+
+**Proper names.** Character names are part of each language's text, not concepts: use the name the tale is traditionally known by in that language (Jack/João/Hans/Juan for the beanstalk boy). Titles follow suit.
 
 ---
 
 ## 3. Interactive behaviors
 
 **B1 — Language pair selector.** Two controls ("I read in… / I'm learning…") on the cover. Same-language pairs are prevented (changing one to match the other swaps them). Changing the pair re-renders the current page; no reload.
+
+**B1a — Library index.** `index.html` (generated from `src/library.html`) shows one cover-styled card per book plus the same pair selector; card titles follow the target language (title in source shown as a subtitle), and each card links to `dist/<name>.html?src=<src>&tgt=<tgt>`. The engine reads those query params on load — validated against `LANGS`, equal-pair rejected — and, only when they are present, renders a quiet "‹ library" link back to `../index.html`. A book file opened standalone (no params) shows no dead link and behaves exactly as before. URL params are not storage; B6 still holds.
 
 **B2 — Page flip.** Swipe, arrow buttons, and keyboard arrows. 3D flip animation; instant swap under `prefers-reduced-motion`.
 
