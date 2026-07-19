@@ -1,5 +1,7 @@
 const TITLE = {en:'The Three Little Pigs', pt:'Os Três Porquinhos', fr:'Les Trois Petits Cochons',
                it:'I Tre Porcellini', de:'Die drei kleinen Schweinchen', es:'Los Tres Cerditos'};
+/* Concept used by the how-to page's "try it now" demo word */
+const DEMO = 'PIGS';
 /* ================= CONCEPTS (one entry per tracked form) ================= */
 const C = {
   PIG:{en:'little pig',pt:'porquinho',fr:'petit cochon',it:'porcellino',de:'Schweinchen',es:'cerdito'},
